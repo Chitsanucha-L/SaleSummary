@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { BanknoteArrowDown, BanknoteArrowUp, Plus, X } from 'lucide-react';
+import EditTransactionModal from "./components/EditTransactionModal";
 
 interface Transaction {
   id: number;
@@ -14,12 +16,23 @@ export default function App() {
   const today = new Date().toISOString().split("T")[0];
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [form, setForm] = useState({
+  const [formIncome, setFormIncome] = useState({
     date: today,
     type: "income",
-    category: "",
-    amount: "",
-    note: "",
+    data: [{
+      category: "",
+      amount: "",
+      note: "",
+    }]
+  });
+  const [formExpense, setFormExpense] = useState({
+    date: today,
+    type: "expense",
+    data: [{
+      category: "",
+      amount: "",
+      note: "",
+    }]
   });
   const [editId, setEditId] = useState<number | null>(null);
   const [chartMode, setChartMode] = useState<"day" | "week">("day");
@@ -34,52 +47,73 @@ export default function App() {
   }, [transactions]);
 
   const saveTransaction = () => {
-    if (!form.date || !form.amount) return;
+    const newTransactions: Transaction[] = [];
+
+    // บันทึกรายการรายรับ
+    formIncome.data.forEach(item => {
+      if (item.category && item.amount) { // เฉพาะรายการที่กรอกครบ
+        newTransactions.push({
+          id: editId && item.category === transactions.find(t => t.id === editId)?.category
+            ? editId
+            : Date.now() + Math.random(),
+          date: formIncome.date,
+          type: "income",
+          category: item.category,
+          amount: Number(item.amount),
+          note: item.note,
+        });
+      }
+    });
+
+    // บันทึกรายการรายจ่าย
+    formExpense.data.forEach(item => {
+      if (item.category && item.amount) {
+        newTransactions.push({
+          id: editId && item.category === transactions.find(t => t.id === editId)?.category
+            ? editId
+            : Date.now() + Math.random(),
+          date: formExpense.date,
+          type: "expense",
+          category: item.category,
+          amount: Number(item.amount),
+          note: item.note,
+        });
+      }
+    });
+
+    if (newTransactions.length === 0) {
+      alert("กรุณากรอกข้อมูลให้ครบก่อนบันทึก");
+      return; // ข้อมูลไม่ครบ ไม่รีเซ็ตฟอร์ม
+    }
 
     if (editId) {
-      // แก้ไขรายการ
       setTransactions(transactions.map(t =>
-        t.id === editId ? {
-          ...t,
-          date: form.date,
-          type: form.type as "income" | "expense",
-          category: form.category,
-          amount: Number(form.amount),
-          note: form.note,
-        } : t
+        t.id === editId ? newTransactions[0] : t
       ));
       setEditId(null);
     } else {
-      // เพิ่มรายการใหม่
-      const newTransaction: Transaction = {
-        id: Date.now(),
-        date: form.date,
-        type: form.type as "income" | "expense",
-        category: form.category,
-        amount: Number(form.amount),
-        note: form.note,
-      };
-      setTransactions([...transactions, newTransaction]);
+      setTransactions([...transactions, ...newTransactions]);
     }
 
-    setForm({ date: today, type: "income", category: "", amount: "", note: "" });
+    // รีเซ็ตฟอร์มเฉพาะรายการที่บันทึกแล้ว
+    setFormIncome({
+      date: today,
+      type: "income",
+      data: [{ category: "", amount: "", note: "" }],
+    });
+    setFormExpense({
+      date: today,
+      type: "expense",
+      data: [{ category: "", amount: "", note: "" }],
+    });
   };
+
+
 
   const deleteTransaction = (id: number) => {
     if (confirm("คุณต้องการลบรายการนี้หรือไม่?")) {
       setTransactions(transactions.filter(t => t.id !== id));
     }
-  };
-
-  const editTransaction = (t: Transaction) => {
-    setForm({
-      date: t.date,
-      type: t.type,
-      category: t.category,
-      amount: t.amount.toString(),
-      note: t.note,
-    });
-    setEditId(t.id);
   };
 
   const summary = transactions.reduce(
@@ -160,8 +194,61 @@ export default function App() {
     (a, b) => new Date(b).getTime() - new Date(a).getTime() // ใหม่สุด → เก่าสุด
   );
 
+  // ฟังก์ชันอัปเดตรายการใน array
+  const updateIncomeItem = (index: number, key: "category" | "amount" | "note", value: string) => {
+    const newData = formIncome.data.map((item, i) =>
+      i === index ? { ...item, [key]: value } : item
+    );
+    setFormIncome({ ...formIncome, data: newData });
+  };
+
+  const updateExpenseItem = (index: number, key: "category" | "amount" | "note", value: string) => {
+    const newData = formExpense.data.map((item, i) =>
+      i === index ? { ...item, [key]: value } : item
+    );
+    setFormExpense({ ...formExpense, data: newData });
+  };
+
+  const addIncomeItem = () => {
+    setFormIncome({
+      ...formIncome,
+      data: [...formIncome.data, { category: "", amount: "", note: "" }],
+    });
+  };
+
+  const addExpenseItem = () => {
+    setFormExpense({
+      ...formExpense,
+      data: [...formExpense.data, { category: "", amount: "", note: "" }],
+    });
+  };
+
+  const removeIncomeItem = (index: number) => {
+    if (formIncome.data.length === 1) return; // ป้องกันลบจนหมด
+    const newData = formIncome.data.filter((_, i) => i !== index);
+    setFormIncome({ ...formIncome, data: newData });
+  };
+
+  const removeExpenseItem = (index: number) => {
+    if (formExpense.data.length === 1) return;
+    const newData = formExpense.data.filter((_, i) => i !== index);
+    setFormExpense({ ...formExpense, data: newData });
+  };
+
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editTransactionItem, setEditTransactionItem] = useState<Transaction | null>(null);
+
+  const editTransaction = (t: Transaction) => {
+    setEditTransactionItem(t);
+    setEditModalOpen(true);
+  };
+
+  const saveEditedTransaction = (updated: Transaction) => {
+    setTransactions(transactions.map(t => t.id === updated.id ? updated : t));
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="font-display min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       {/* Header */}
       <header className="bg-blue-600 text-white py-4 shadow-md">
         <h1 className="text-center text-2xl font-bold">🍜 ระบบติดตามรายรับ–รายจ่าย ร้านอาหาร</h1>
@@ -171,42 +258,148 @@ export default function App() {
         {/* ฟอร์มบันทึก */}
         <div className="bg-white p-6 rounded-xl shadow-lg">
           <h2 className="text-xl font-semibold mb-4 text-gray-700">➕ เพิ่มรายการ</h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             <input
+              id="transaction-date"
               type="date"
-              value={form.date}
-              onChange={(e) => setForm({ ...form, date: e.target.value })}
-              className="border border-gray-500 shadow-sm p-2 rounded-lg focus:ring-2 focus:ring-blue-400"
+              value={formIncome.date}
+              onChange={(e) => {
+                const newDate = e.target.value;
+                setFormIncome({ ...formIncome, date: newDate });
+                setFormExpense({ ...formExpense, date: newDate });
+              }}
+              className="col-span-3 sm:col-span-1 border border-gray-500 shadow-sm p-2 rounded-lg focus:ring-2 focus:ring-blue-400"
             />
-            <select
-              value={form.type}
-              onChange={(e) => setForm({ ...form, type: e.target.value })}
-              className="border border-gray-500 shadow-sm p-2 rounded-lg focus:ring-2 focus:ring-blue-400"
-            >
-              <option value="income">รายรับ</option>
-              <option value="expense">รายจ่าย</option>
-            </select>
-            <input
-              type="text"
-              placeholder="หมวดหมู่"
-              value={form.category}
-              onChange={(e) => setForm({ ...form, category: e.target.value })}
-              className="border border-gray-500 shadow-sm p-2 rounded-lg focus:ring-2 focus:ring-blue-400"
-            />
-            <input
-              type="number"
-              placeholder="จำนวนเงิน"
-              value={form.amount}
-              onChange={(e) => setForm({ ...form, amount: e.target.value })}
-              className="border border-gray-500 shadow-sm p-2 rounded-lg focus:ring-2 focus:ring-blue-400"
-            />
-            <input
-              type="text"
-              placeholder="หมายเหตุ"
-              value={form.note}
-              onChange={(e) => setForm({ ...form, note: e.target.value })}
-              className="border border-gray-500 shadow-sm p-2 rounded-lg focus:ring-2 focus:ring-blue-400 col-span-2"
-            />
+
+            <div className="col-span-3 grid grid-cols-2 sm:grid-cols-3 gap-2 items-center">
+              <div className="w-full flex border border-gray-500 shadow-sm p-2 rounded-lg focus:ring-2 focus:ring-blue-400">
+                <BanknoteArrowUp className="mr-2 text-green-700" />
+                รายรับ
+              </div>
+              <div className="flex space-x-2">
+                <button onClick={addIncomeItem} className="text-white font-bold bg-green-400 shadow-md p-2 rounded-lg">
+                  <Plus />
+                </button>
+                {formIncome.data.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => removeIncomeItem(formIncome.data.length - 1)}
+                    className="text-white font-bold bg-red-400 shadow-md p-2 rounded-lg"
+                  >
+                    <X />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {formIncome.data.map((item, index) => (
+              <div key={index} className="col-span-3 grid grid-cols-2 sm:grid-cols-3 gap-2 items-center">
+                <label htmlFor={`income-category-${index}`} className="sr-only">หมวดหมู่รายรับ</label>
+                <select
+                  id={`income-category-${index}`}
+                  name={`income-category-${index}`}
+                  value={item.category}
+                  onChange={(e) => updateIncomeItem(index, "category", e.target.value)}
+                  className={`border border-gray-500 shadow-sm p-2 rounded-lg focus:ring-2 focus:ring-blue-400 ${item.category === "" ? "text-gray-500" : "text-black"
+                    }`}
+                >
+                  <option value="" className="text-black">-- เลือกหมวดหมู่ --</option>
+                  <option value="ต้นทุน" className="text-black">ต้นทุน</option>
+                  <option value="ขายอาหาร" className="text-black">ขายอาหาร</option>
+                  <option value="อื่นๆ" className="text-black">อื่นๆ</option>
+                </select>
+
+                <label htmlFor={`income-amount-${index}`} className="sr-only">จำนวนเงิน</label>
+                <input
+                  id={`income-amount-${index}`}
+                  name={`income-amount-${index}`}
+                  type="number"
+                  placeholder="จำนวนเงิน"
+                  value={item.amount}
+                  onChange={(e) => updateIncomeItem(index, "amount", e.target.value)}
+                  className="border border-gray-500 shadow-sm p-2 rounded-lg focus:ring-2 focus:ring-blue-400"
+                />
+
+                <label htmlFor={`income-note-${index}`} className="sr-only">หมายเหตุ</label>
+                <input
+                  id={`income-note-${index}`}
+                  name={`income-note-${index}`}
+                  type="text"
+                  placeholder="หมายเหตุ"
+                  value={item.note}
+                  onChange={(e) => updateIncomeItem(index, "note", e.target.value)}
+                  className="border border-gray-500 shadow-sm p-2 rounded-lg focus:ring-2 focus:ring-blue-400"
+                />
+              </div>
+            ))}
+
+            <div className="col-span-2 sm:col-span-3 h-5" />
+
+            <div className="col-span-3 grid grid-cols-2 sm:grid-cols-3 gap-2 items-center">
+              <div className="w-full flex border border-gray-500 shadow-sm p-2 rounded-lg focus:ring-2 focus:ring-blue-400">
+                <BanknoteArrowDown className="mr-2 text-red-700" />
+                รายจ่าย
+              </div>
+              <div className="flex space-x-2">
+                <button onClick={addExpenseItem} className="text-white font-bold bg-green-400 shadow-md p-2 rounded-lg">
+                  <Plus />
+                </button>
+                {formExpense.data.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => removeExpenseItem(formExpense.data.length - 1)}
+                    className="text-white font-bold bg-red-400 shadow-md p-2 rounded-lg"
+                  >
+                    <X />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {formExpense.data.map((item, index) => (
+              <div key={index} className="col-span-3 grid grid-cols-2 sm:grid-cols-3 gap-2 items-center">
+                <label htmlFor={`expense-category-${index}`} className="sr-only">หมวดหมู่รายจ่าย</label>
+                <select
+                  id={`expense-category-${index}`}
+                  name={`expense-category-${index}`}
+                  value={item.category}
+                  onChange={(e) => updateExpenseItem(index, "category", e.target.value)}
+                  className={`border border-gray-500 shadow-sm p-2 rounded-lg focus:ring-2 focus:ring-blue-400 ${item.category === "" ? "text-gray-500" : "text-black"
+                    }`}
+                >
+                  <option value="" className="text-black">-- เลือกหมวดหมู่ --</option>
+                  <option value="แซลมอน" className="text-black">แซลมอน</option>
+                  <option value="ผัก" className="text-black">ผัก</option>
+                  <option value="บรรจุภัณฑ์" className="text-black">บรรจุภัณฑ์</option>
+                  <option value="เครื่องปรุง" className="text-black">เครื่องปรุง</option>
+                  <option value="เครื่องดื่ม" className="text-black">เครื่องดื่ม</option>
+                  <option value="เครื่องเคียง" className="text-black">เครื่องเคียง</option>
+                  <option value="อื่นๆ" className="text-black">อื่นๆ</option>
+                </select>
+
+                <label htmlFor={`expense-amount-${index}`} className="sr-only">จำนวนเงิน</label>
+                <input
+                  id={`expense-amount-${index}`}
+                  name={`expense-amount-${index}`}
+                  type="number"
+                  placeholder="จำนวนเงิน"
+                  value={item.amount}
+                  onChange={(e) => updateExpenseItem(index, "amount", e.target.value)}
+                  className="border border-gray-500 shadow-sm p-2 rounded-lg focus:ring-2 focus:ring-blue-400"
+                />
+
+                <label htmlFor={`expense-note-${index}`} className="sr-only">หมายเหตุ</label>
+                <input
+                  id={`expense-note-${index}`}
+                  name={`expense-note-${index}`}
+                  type="text"
+                  placeholder="หมายเหตุ"
+                  value={item.note}
+                  onChange={(e) => updateExpenseItem(index, "note", e.target.value)}
+                  className="border border-gray-500 shadow-sm p-2 rounded-lg focus:ring-2 focus:ring-blue-400"
+                />
+              </div>
+            ))}
           </div>
           <button
             onClick={saveTransaction}
@@ -242,7 +435,7 @@ export default function App() {
                     {groupedByDate[date].map((t) => (
                       <tr key={t.id} className="hover:bg-gray-50 transition">
                         <td className="p-2 border">{t.date}</td>
-                        <td className={`p-2 border font-medium ${t.type === "income" ? "text-green-600" : "text-red-600"}`}>
+                        <td className={`p-2 border border-black font-medium ${t.type === "income" ? "text-green-600" : "text-red-600"}`}>
                           {t.type === "income" ? "รายรับ" : "รายจ่าย"}
                         </td>
                         <td className="p-2 border">{t.category}</td>
@@ -350,6 +543,13 @@ export default function App() {
           </div>
         </div>
       </main>
+
+      <EditTransactionModal
+        open={editModalOpen}
+        onClose={() => setEditModalOpen(false)}
+        transaction={editTransactionItem}
+        onSave={saveEditedTransaction}
+      />
     </div>
   );
 }
