@@ -2,13 +2,14 @@ import { BanknoteArrowDown, BanknoteArrowUp } from "lucide-react";
 import { useEffect, useState } from "react";
 
 interface Transaction {
-    id: number;
-    date: string;
-    type: "income" | "expense";
-    category: string;
-    amount: number;
-    note: string;
+  _id: string;   
+  date: string;
+  type: "income" | "expense";
+  category: string;
+  amount: number;
+  note: string;
 }
+
 
 interface EditModalProps {
     open: boolean;

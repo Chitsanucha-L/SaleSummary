@@ -4,7 +4,7 @@ import { BanknoteArrowDown, BanknoteArrowUp, Plus, X } from 'lucide-react';
 import EditTransactionModal from "./components/EditTransactionModal";
 
 interface Transaction {
-  id: number;
+  _id: string;
   date: string;
   type: "income" | "expense";
   category: string;
@@ -34,85 +34,60 @@ export default function App() {
       note: "",
     }]
   });
-  const [editId, setEditId] = useState<number | null>(null);
   const [chartMode, setChartMode] = useState<"day" | "week">("day");
 
   useEffect(() => {
-    const saved = localStorage.getItem("transactions");
-    if (saved) setTransactions(JSON.parse(saved));
+    const fetchTransactions = async () => {
+      try {
+        const res = await fetch("https://backend-sale-summary.vercel.app/api/transactions");
+        const data = await res.json();
+        setTransactions(data);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    fetchTransactions();
   }, []);
 
-  useEffect(() => {
-    localStorage.setItem("transactions", JSON.stringify(transactions));
-  }, [transactions]);
-
-  const saveTransaction = () => {
-    const newTransactions: Transaction[] = [];
-
-    // บันทึกรายการรายรับ
-    formIncome.data.forEach(item => {
-      if (item.category && item.amount) { // เฉพาะรายการที่กรอกครบ
-        newTransactions.push({
-          id: editId && item.category === transactions.find(t => t.id === editId)?.category
-            ? editId
-            : Date.now() + Math.random(),
+  const saveTransaction = async () => {
+    const newTransactions = [
+      ...formIncome.data
+        .filter(i => i.category && i.amount)
+        .map(i => ({
           date: formIncome.date,
           type: "income",
-          category: item.category,
-          amount: Number(item.amount),
-          note: item.note,
-        });
-      }
-    });
-
-    // บันทึกรายการรายจ่าย
-    formExpense.data.forEach(item => {
-      if (item.category && item.amount) {
-        newTransactions.push({
-          id: editId && item.category === transactions.find(t => t.id === editId)?.category
-            ? editId
-            : Date.now() + Math.random(),
+          category: i.category,
+          amount: Number(i.amount),
+          note: i.note,
+        })),
+      ...formExpense.data
+        .filter(i => i.category && i.amount)
+        .map(i => ({
           date: formExpense.date,
           type: "expense",
-          category: item.category,
-          amount: Number(item.amount),
-          note: item.note,
+          category: i.category,
+          amount: Number(i.amount),
+          note: i.note,
+        }))
+    ];
+
+    if (newTransactions.length === 0) return alert("กรุณากรอกข้อมูลให้ครบ");
+
+    try {
+      const saved = await Promise.all(newTransactions.map(async (t) => {
+        const res = await fetch("https://backend-sale-summary.vercel.app/api/transactions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(t),
         });
-      }
-    });
-
-    if (newTransactions.length === 0) {
-      alert("กรุณากรอกข้อมูลให้ครบก่อนบันทึก");
-      return; // ข้อมูลไม่ครบ ไม่รีเซ็ตฟอร์ม
-    }
-
-    if (editId) {
-      setTransactions(transactions.map(t =>
-        t.id === editId ? newTransactions[0] : t
-      ));
-      setEditId(null);
-    } else {
-      setTransactions([...transactions, ...newTransactions]);
-    }
-
-    // รีเซ็ตฟอร์มเฉพาะรายการที่บันทึกแล้ว
-    setFormIncome({
-      date: today,
-      type: "income",
-      data: [{ category: "", amount: "", note: "" }],
-    });
-    setFormExpense({
-      date: today,
-      type: "expense",
-      data: [{ category: "", amount: "", note: "" }],
-    });
-  };
-
-
-
-  const deleteTransaction = (id: number) => {
-    if (confirm("คุณต้องการลบรายการนี้หรือไม่?")) {
-      setTransactions(transactions.filter(t => t.id !== id));
+        return res.json();
+      }));
+      setTransactions([...transactions, ...saved]);
+      setFormIncome({ date: today, type: "income", data: [{ category: "", amount: "", note: "" }] });
+      setFormExpense({ date: today, type: "expense", data: [{ category: "", amount: "", note: "" }] });
+    } catch (err) {
+      console.error(err);
+      alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
     }
   };
 
@@ -151,7 +126,7 @@ export default function App() {
       name: date,
       income: val.income,
       expense: val.expense,
-    })).sort((a, b) => new Date(b.name).getTime() - new Date(a.name).getTime());
+    })).sort((a, b) => new Date(a.name).getTime() - new Date(b.name).getTime());
   } else {
     const grouped = transactions.reduce((acc, t) => {
       const week = getWeek(t.date);
@@ -243,9 +218,38 @@ export default function App() {
     setEditModalOpen(true);
   };
 
-  const saveEditedTransaction = (updated: Transaction) => {
-    setTransactions(transactions.map(t => t.id === updated.id ? updated : t));
+  const totalCost = transactions
+  .filter(t => t.type === "income" && t.category === "ต้นทุน")
+  .reduce((sum, t) => sum + t.amount, 0);
+
+
+  // แก้ไข
+  const saveEditedTransaction = async (updated: Transaction) => {
+    try {
+      const res = await fetch(`https://backend-sale-summary.vercel.app/api/transactions/${updated._id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updated),
+      });
+      const saved = await res.json();
+      setTransactions(transactions.map(t => t._id === saved._id ? saved : t));
+      setEditModalOpen(false);
+    } catch (err) {
+      console.error(err);
+    }
   };
+
+  // ลบ
+  const deleteTransaction = async (id: string) => {
+    if (!confirm("คุณต้องการลบรายการนี้หรือไม่?")) return;
+    try {
+      await fetch(`https://backend-sale-summary.vercel.app/api/transactions/${id}`, { method: "DELETE" });
+      setTransactions(transactions.filter(t => t._id !== id));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
 
   return (
     <div className="font-display min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -368,6 +372,7 @@ export default function App() {
                     }`}
                 >
                   <option value="" className="text-black">-- เลือกหมวดหมู่ --</option>
+                  <option value="กุ้ง" className="text-black">กุ้ง</option>
                   <option value="แซลมอน" className="text-black">แซลมอน</option>
                   <option value="ผัก" className="text-black">ผัก</option>
                   <option value="บรรจุภัณฑ์" className="text-black">บรรจุภัณฑ์</option>
@@ -405,7 +410,7 @@ export default function App() {
             onClick={saveTransaction}
             className="mt-4 bg-blue-600 shadow-md hover:bg-blue-700 text-white px-6 py-2 rounded-lg shadow"
           >
-            {editId ? "บันทึกการแก้ไข" : "บันทึก"}
+            {"บันทึก"}
           </button>
         </div>
 
@@ -433,7 +438,7 @@ export default function App() {
                       </td>
                     </tr>
                     {groupedByDate[date].map((t) => (
-                      <tr key={t.id} className="hover:bg-gray-50 transition">
+                      <tr key={t._id} className="hover:bg-gray-50 transition">
                         <td className="p-2 border">{t.date}</td>
                         <td className={`p-2 border border-black font-medium ${t.type === "income" ? "text-green-600" : "text-red-600"}`}>
                           {t.type === "income" ? "รายรับ" : "รายจ่าย"}
@@ -449,7 +454,7 @@ export default function App() {
                             แก้ไข
                           </button>
                           <button
-                            onClick={() => deleteTransaction(t.id)}
+                            onClick={() => deleteTransaction(t._id)}
                             className="px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600"
                           >
                             ลบ
@@ -494,7 +499,11 @@ export default function App() {
         </div>
 
         {/* สรุปรวม */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className="bg-yellow-100 p-6 rounded-xl shadow text-center">
+            <h3 className="text-lg font-semibold text-yellow-700">🟡 ต้นทุน</h3>
+            <p className="text-2xl font-bold text-yellow-800">{totalCost.toLocaleString()} บาท</p>
+          </div>
           <div className="bg-green-100 p-6 rounded-xl shadow text-center">
             <h3 className="text-lg font-semibold text-green-700">💰 รายรับรวม</h3>
             <p className="text-2xl font-bold text-green-800">{summary.income.toLocaleString()} บาท</p>
@@ -508,6 +517,7 @@ export default function App() {
             <p className="text-2xl font-bold text-indigo-800">{(summary.income - summary.expense).toLocaleString()} บาท</p>
           </div>
         </div>
+
 
         {/* กราฟ */}
         <div className="bg-white p-6 rounded-xl shadow-lg">
