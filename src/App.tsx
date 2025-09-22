@@ -1,12 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import { BanknoteArrowDown, BanknoteArrowUp, Plus, X } from 'lucide-react';
+import TransactionForm from "./components/TransactionForm";
+import TransactionTable from "./components/TransactionTable";
 import EditTransactionModal from "./components/EditTransactionModal";
 
 interface Transaction {
   _id: string;
   date: string;
-  type: "income" | "expense";
+  type: "income" | "expense" | "cost";
   category: string;
   amount: number;
   note: string;
@@ -15,29 +16,31 @@ interface Transaction {
 export default function App() {
   const today = new Date().toISOString().split("T")[0];
 
+  // -------------------- State --------------------
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [formIncome, setFormIncome] = useState({
     date: today,
     type: "income",
-    data: [{
-      category: "",
-      amount: "",
-      note: "",
-    }]
+    data: [{ category: "", amount: "", note: "" }]
   });
   const [formExpense, setFormExpense] = useState({
     date: today,
     type: "expense",
-    data: [{
-      category: "",
-      amount: "",
-      note: "",
-    }]
+    data: [{ category: "", amount: "", note: "" }]
   });
+  const [formCost, setFormCost] = useState({
+    date: today,
+    type: "cost",
+    data: [{ category: "", amount: "", note: "" }]
+  });
+  const [isSaving, setIsSaving] = useState(false);
+  const [isGetData, setIsGetData] = useState(false);
   const [chartMode, setChartMode] = useState<"day" | "week">("day");
 
+  // -------------------- Fetch Transactions --------------------
   useEffect(() => {
     const fetchTransactions = async () => {
+      setIsGetData(true);
       try {
         const res = await fetch("https://backend-sale-summary.vercel.app/api/transactions");
         const data = await res.json();
@@ -45,62 +48,154 @@ export default function App() {
       } catch (err) {
         console.error(err);
       }
+      setIsGetData(false);
     };
     fetchTransactions();
   }, []);
 
-  const saveTransaction = async () => {
+  // -------------------- Handler useCallback --------------------
+  const updateIncomeItem = useCallback((index: number, key: "category" | "amount" | "note", value: string) => {
+    setFormIncome(prev => {
+      const newData = prev.data.map((item, i) => i === index ? { ...item, [key]: value } : item);
+      return { ...prev, data: newData };
+    });
+  }, []);
+
+  const updateExpenseItem = useCallback((index: number, key: "category" | "amount" | "note", value: string) => {
+    setFormExpense(prev => {
+      const newData = prev.data.map((item, i) => i === index ? { ...item, [key]: value } : item);
+      return { ...prev, data: newData };
+    });
+  }, []);
+
+  const updateCostItem = useCallback((index: number, key: "category" | "amount" | "note", value: string) => {
+    setFormCost(prev => {
+      const newData = prev.data.map((item, i) => i === index ? { ...item, [key]: value } : item);
+      return { ...prev, data: newData };
+    });
+  }, []);
+
+  const addIncomeItem = useCallback(() => setFormIncome(prev => ({
+    ...prev,
+    data: [...prev.data, { category: "", amount: "", note: "" }]
+  })), []);
+
+  const addExpenseItem = useCallback(() => setFormExpense(prev => ({
+    ...prev,
+    data: [...prev.data, { category: "", amount: "", note: "" }]
+  })), []);
+
+  const addCostItem = useCallback(() => setFormCost(prev => ({
+    ...prev,
+    data: [...prev.data, { category: "", amount: "", note: "" }]
+  })), []);
+
+  const removeIncomeItem = useCallback((index: number) => setFormIncome(prev => ({
+    ...prev,
+    data: prev.data.filter((_, i) => i !== index)
+  })), []);
+
+  const removeExpenseItem = useCallback((index: number) => setFormExpense(prev => ({
+    ...prev,
+    data: prev.data.filter((_, i) => i !== index)
+  })), []);
+
+  const removeCostItem = useCallback((index: number) => setFormCost(prev => ({
+    ...prev,
+    data: prev.data.filter((_, i) => i !== index)
+  })), []);
+
+  // -------------------- Save Transaction --------------------
+  const saveTransaction = useCallback(async () => {
     const newTransactions = [
-      ...formIncome.data
-        .filter(i => i.category && i.amount)
-        .map(i => ({
-          date: formIncome.date,
-          type: "income",
-          category: i.category,
-          amount: Number(i.amount),
-          note: i.note,
-        })),
-      ...formExpense.data
-        .filter(i => i.category && i.amount)
-        .map(i => ({
-          date: formExpense.date,
-          type: "expense",
-          category: i.category,
-          amount: Number(i.amount),
-          note: i.note,
-        }))
+      ...formIncome.data.filter(i => i.category && i.amount).map(i => ({
+        date: formIncome.date,
+        type: "income",
+        category: i.category,
+        amount: Number(i.amount),
+        note: i.note
+      })),
+      ...formExpense.data.filter(i => i.category && i.amount).map(i => ({
+        date: formExpense.date,
+        type: "expense",
+        category: i.category,
+        amount: Number(i.amount),
+        note: i.note
+      })),
+      ...formCost.data.filter(i => i.category && i.amount).map(i => ({
+        date: formCost.date,
+        type: "cost",
+        category: i.category,
+        amount: Number(i.amount),
+        note: i.note
+      }))
     ];
 
-    if (newTransactions.length === 0) return alert("กรุณากรอกข้อมูลให้ครบ");
+    if (!newTransactions.length) return alert("กรุณากรอกข้อมูลให้ครบ");
 
+    setIsSaving(true);
     try {
-      const saved = await Promise.all(newTransactions.map(async (t) => {
+      const saved = await Promise.all(newTransactions.map(async t => {
         const res = await fetch("https://backend-sale-summary.vercel.app/api/transactions", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(t),
+          body: JSON.stringify(t)
         });
         return res.json();
       }));
-      setTransactions([...transactions, ...saved]);
+      setTransactions(prev => [...prev, ...saved]);
       setFormIncome({ date: today, type: "income", data: [{ category: "", amount: "", note: "" }] });
       setFormExpense({ date: today, type: "expense", data: [{ category: "", amount: "", note: "" }] });
+      setFormCost({ date: today, type: "cost", data: [{ category: "", amount: "", note: "" }] });
     } catch (err) {
       console.error(err);
       alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
+    } finally {
+      setIsSaving(false);
     }
-  };
+  }, [formIncome, formExpense, formCost, today]);
 
-  const summary = transactions.reduce(
-    (acc, t) => {
+  // -------------------- Chart Data --------------------
+  const chartData = useMemo(() => {
+    const grouped: Record<string, { income: number; expense: number; cost: number }> = {};
+    transactions.forEach(t => {
+      const key = chartMode === "day" ? t.date : getWeek(t.date);
+      if (!grouped[key]) grouped[key] = { income: 0, expense: 0, cost: 0 };
+      grouped[key][t.type] += t.amount;
+    });
+    return Object.entries(grouped)
+      .map(([name, val]) => ({ name, ...val }))
+      .sort((a, b) => new Date(a.name).getTime() - new Date(b.name).getTime());
+  }, [transactions, chartMode]);
+
+  // -------------------- Summary --------------------
+  const summary = useMemo(() => {
+    return transactions.reduce((acc, t) => {
       if (t.type === "income") acc.income += t.amount;
-      else acc.expense += t.amount;
+      else if (t.type === "expense") acc.expense += t.amount;
       return acc;
-    },
-    { income: 0, expense: 0 }
-  );
+    }, { income: 0, expense: 0 });
+  }, [transactions]);
 
-  // ---- ฟังก์ชันหาหมายเลขสัปดาห์ ----
+  const totalCost = useMemo(() => transactions.filter(t => t.type === "cost").reduce((sum, t) => sum + t.amount, 0), [transactions]);
+
+  // Summary ตามวัน 
+  const dailySummary = transactions.reduce((acc, t) => {
+    if (!acc[t.date]) {
+      acc[t.date] = { income: 0, expense: 0, cost: 0 };
+    }
+    if (t.type === "income") acc[t.date].income += t.amount;
+    if (t.type === "expense") acc[t.date].expense += t.amount;
+    if (t.type === "cost") acc[t.date].cost += t.amount;
+    return acc;
+  },
+    {} as Record<string, { income: number; expense: number; cost: number }>);
+
+  const dailySummaryArray = Object.entries(dailySummary).map(([date, { income, expense, cost }]) => ({
+    date, income, expense, cost, net: income - expense - cost, // กำไรสุทธิ ลบต้นทุนด้วย 
+  })).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+  // -------------------- Utilities --------------------
   function getWeek(dateStr: string) {
     const date = new Date(dateStr);
     const onejan = new Date(date.getFullYear(), 0, 1);
@@ -112,362 +207,123 @@ export default function App() {
     );
   }
 
-  // ---- สร้าง chartData ----
-  let chartData: { name: string; income: number; expense: number }[] = [];
+  // -------------------- Handlers --------------------
+  const handleDateChange = useCallback((newDate: string) => {
+    setFormIncome(prev => ({ ...prev, date: newDate }));
+    setFormExpense(prev => ({ ...prev, date: newDate }));
+    setFormCost(prev => ({ ...prev, date: newDate }));
+  }, []);
 
-  if (chartMode === "day") {
-    const grouped = transactions.reduce((acc, t) => {
-      if (!acc[t.date]) acc[t.date] = { income: 0, expense: 0 };
-      acc[t.date][t.type] += t.amount;
-      return acc;
-    }, {} as Record<string, { income: number; expense: number }>);
-
-    chartData = Object.entries(grouped).map(([date, val]) => ({
-      name: date,
-      income: val.income,
-      expense: val.expense,
-    })).sort((a, b) => new Date(a.name).getTime() - new Date(b.name).getTime());
-  } else {
-    const grouped = transactions.reduce((acc, t) => {
-      const week = getWeek(t.date);
-      if (!acc[week]) acc[week] = { income: 0, expense: 0 };
-      acc[week][t.type] += t.amount;
-      return acc;
-    }, {} as Record<string, { income: number; expense: number }>);
-
-    chartData = Object.entries(grouped).map(([week, val]) => ({
-      name: week,
-      income: val.income,
-      expense: val.expense,
-    }));
-  }
-
-  // ---- สรุปรายวัน ----
-  const dailySummary = transactions.reduce((acc, t) => {
-    if (!acc[t.date]) acc[t.date] = { income: 0, expense: 0 };
-    acc[t.date][t.type] += t.amount;
-    return acc;
-  }, {} as Record<string, { income: number; expense: number }>);
-
-  const dailySummaryArray = Object.entries(dailySummary)
-    .map(([date, val]) => ({
-      date,
-      income: val.income,
-      expense: val.expense,
-      net: val.income - val.expense,
-    }))
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()); // ใหม่สุด → เก่าสุด
-
-  // ---- จัดกลุ่ม transactions สำหรับตาราง ----
-  const groupedByDate = transactions.reduce((acc, t) => {
-    if (!acc[t.date]) acc[t.date] = [];
-    acc[t.date].push(t);
-    return acc;
-  }, {} as Record<string, Transaction[]>);
-
-  const sortedDates = Object.keys(groupedByDate).sort(
-    (a, b) => new Date(b).getTime() - new Date(a).getTime() // ใหม่สุด → เก่าสุด
-  );
-
-  // ฟังก์ชันอัปเดตรายการใน array
-  const updateIncomeItem = (index: number, key: "category" | "amount" | "note", value: string) => {
-    const newData = formIncome.data.map((item, i) =>
-      i === index ? { ...item, [key]: value } : item
-    );
-    setFormIncome({ ...formIncome, data: newData });
-  };
-
-  const updateExpenseItem = (index: number, key: "category" | "amount" | "note", value: string) => {
-    const newData = formExpense.data.map((item, i) =>
-      i === index ? { ...item, [key]: value } : item
-    );
-    setFormExpense({ ...formExpense, data: newData });
-  };
-
-  const addIncomeItem = () => {
-    setFormIncome({
-      ...formIncome,
-      data: [...formIncome.data, { category: "", amount: "", note: "" }],
-    });
-  };
-
-  const addExpenseItem = () => {
-    setFormExpense({
-      ...formExpense,
-      data: [...formExpense.data, { category: "", amount: "", note: "" }],
-    });
-  };
-
-  const removeIncomeItem = (index: number) => {
-    if (formIncome.data.length === 1) return; // ป้องกันลบจนหมด
-    const newData = formIncome.data.filter((_, i) => i !== index);
-    setFormIncome({ ...formIncome, data: newData });
-  };
-
-  const removeExpenseItem = (index: number) => {
-    if (formExpense.data.length === 1) return;
-    const newData = formExpense.data.filter((_, i) => i !== index);
-    setFormExpense({ ...formExpense, data: newData });
-  };
+  const handleDeleteTransaction = useCallback(async (id: string) => {
+    if (!confirm("คุณต้องการลบรายการนี้หรือไม่?")) return;
+    setIsSaving(true);
+    try {
+      await fetch(`https://backend-sale-summary.vercel.app/api/transactions/${id}`, { method: "DELETE" });
+      setTransactions(prev => prev.filter(t => t._id !== id));
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSaving(false);
+    }
+  }, []);
 
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editTransactionItem, setEditTransactionItem] = useState<Transaction | null>(null);
-
   const editTransaction = (t: Transaction) => {
     setEditTransactionItem(t);
     setEditModalOpen(true);
   };
 
-  const totalCost = transactions
-  .filter(t => t.type === "income" && t.category === "ต้นทุน")
-  .reduce((sum, t) => sum + t.amount, 0);
-
-
-  // แก้ไข
   const saveEditedTransaction = async (updated: Transaction) => {
     try {
-      const res = await fetch(`https://backend-sale-summary.vercel.app/api/transactions/${updated._id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updated),
-      });
+      const res = await fetch(` 
+        https://backend-sale-summary.vercel.app/api/transactions/${updated._id}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(updated),
+        }
+      );
       const saved = await res.json();
       setTransactions(transactions.map(t => t._id === saved._id ? saved : t));
-      setEditModalOpen(false);
+      return saved; // เพิ่ม return 
     } catch (err) {
-      console.error(err);
+      console.error(err); throw err; // ให้ reject 
     }
   };
 
-  // ลบ
-  const deleteTransaction = async (id: string) => {
-    if (!confirm("คุณต้องการลบรายการนี้หรือไม่?")) return;
-    try {
-      await fetch(`https://backend-sale-summary.vercel.app/api/transactions/${id}`, { method: "DELETE" });
-      setTransactions(transactions.filter(t => t._id !== id));
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-
+  // -------------------- Render --------------------
   return (
     <div className="font-display min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      {/* Header */}
       <header className="bg-blue-600 text-white py-4 shadow-md">
         <h1 className="text-center text-2xl font-bold">🍜 ระบบติดตามรายรับ–รายจ่าย ร้านอาหาร</h1>
       </header>
 
       <main className="p-6 max-w-5xl mx-auto space-y-8">
+
         {/* ฟอร์มบันทึก */}
         <div className="bg-white p-6 rounded-xl shadow-lg">
-          <h2 className="text-xl font-semibold mb-4 text-gray-700">➕ เพิ่มรายการ</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 items-center">
             <input
-              id="transaction-date"
               type="date"
               value={formIncome.date}
-              onChange={(e) => {
-                const newDate = e.target.value;
-                setFormIncome({ ...formIncome, date: newDate });
-                setFormExpense({ ...formExpense, date: newDate });
-              }}
-              className="col-span-3 sm:col-span-1 border border-gray-500 shadow-sm p-2 rounded-lg focus:ring-2 focus:ring-blue-400"
+              onChange={(e) => handleDateChange(e.target.value)}
+              className="w-full border border-gray-500 shadow-sm p-2 rounded-lg mb-4"
             />
-
-            <div className="col-span-3 grid grid-cols-2 sm:grid-cols-3 gap-2 items-center">
-              <div className="w-full flex border border-gray-500 shadow-sm p-2 rounded-lg focus:ring-2 focus:ring-blue-400">
-                <BanknoteArrowUp className="mr-2 text-green-700" />
-                รายรับ
-              </div>
-              <div className="flex space-x-2">
-                <button onClick={addIncomeItem} className="text-white font-bold bg-green-400 shadow-md p-2 rounded-lg">
-                  <Plus />
-                </button>
-                {formIncome.data.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => removeIncomeItem(formIncome.data.length - 1)}
-                    className="text-white font-bold bg-red-400 shadow-md p-2 rounded-lg"
-                  >
-                    <X />
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {formIncome.data.map((item, index) => (
-              <div key={index} className="col-span-3 grid grid-cols-2 sm:grid-cols-3 gap-2 items-center">
-                <label htmlFor={`income-category-${index}`} className="sr-only">หมวดหมู่รายรับ</label>
-                <select
-                  id={`income-category-${index}`}
-                  name={`income-category-${index}`}
-                  value={item.category}
-                  onChange={(e) => updateIncomeItem(index, "category", e.target.value)}
-                  className={`border border-gray-500 shadow-sm p-2 rounded-lg focus:ring-2 focus:ring-blue-400 ${item.category === "" ? "text-gray-500" : "text-black"
-                    }`}
-                >
-                  <option value="" className="text-black">-- เลือกหมวดหมู่ --</option>
-                  <option value="ต้นทุน" className="text-black">ต้นทุน</option>
-                  <option value="ขายอาหาร" className="text-black">ขายอาหาร</option>
-                  <option value="อื่นๆ" className="text-black">อื่นๆ</option>
-                </select>
-
-                <label htmlFor={`income-amount-${index}`} className="sr-only">จำนวนเงิน</label>
-                <input
-                  id={`income-amount-${index}`}
-                  name={`income-amount-${index}`}
-                  type="number"
-                  placeholder="จำนวนเงิน"
-                  value={item.amount}
-                  onChange={(e) => updateIncomeItem(index, "amount", e.target.value)}
-                  className="border border-gray-500 shadow-sm p-2 rounded-lg focus:ring-2 focus:ring-blue-400"
-                />
-
-                <label htmlFor={`income-note-${index}`} className="sr-only">หมายเหตุ</label>
-                <input
-                  id={`income-note-${index}`}
-                  name={`income-note-${index}`}
-                  type="text"
-                  placeholder="หมายเหตุ"
-                  value={item.note}
-                  onChange={(e) => updateIncomeItem(index, "note", e.target.value)}
-                  className="border border-gray-500 shadow-sm p-2 rounded-lg focus:ring-2 focus:ring-blue-400"
-                />
-              </div>
-            ))}
-
-            <div className="col-span-2 sm:col-span-3 h-5" />
-
-            <div className="col-span-3 grid grid-cols-2 sm:grid-cols-3 gap-2 items-center">
-              <div className="w-full flex border border-gray-500 shadow-sm p-2 rounded-lg focus:ring-2 focus:ring-blue-400">
-                <BanknoteArrowDown className="mr-2 text-red-700" />
-                รายจ่าย
-              </div>
-              <div className="flex space-x-2">
-                <button onClick={addExpenseItem} className="text-white font-bold bg-green-400 shadow-md p-2 rounded-lg">
-                  <Plus />
-                </button>
-                {formExpense.data.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => removeExpenseItem(formExpense.data.length - 1)}
-                    className="text-white font-bold bg-red-400 shadow-md p-2 rounded-lg"
-                  >
-                    <X />
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {formExpense.data.map((item, index) => (
-              <div key={index} className="col-span-3 grid grid-cols-2 sm:grid-cols-3 gap-2 items-center">
-                <label htmlFor={`expense-category-${index}`} className="sr-only">หมวดหมู่รายจ่าย</label>
-                <select
-                  id={`expense-category-${index}`}
-                  name={`expense-category-${index}`}
-                  value={item.category}
-                  onChange={(e) => updateExpenseItem(index, "category", e.target.value)}
-                  className={`border border-gray-500 shadow-sm p-2 rounded-lg focus:ring-2 focus:ring-blue-400 ${item.category === "" ? "text-gray-500" : "text-black"
-                    }`}
-                >
-                  <option value="" className="text-black">-- เลือกหมวดหมู่ --</option>
-                  <option value="กุ้ง" className="text-black">กุ้ง</option>
-                  <option value="แซลมอน" className="text-black">แซลมอน</option>
-                  <option value="ผัก" className="text-black">ผัก</option>
-                  <option value="บรรจุภัณฑ์" className="text-black">บรรจุภัณฑ์</option>
-                  <option value="เครื่องปรุง" className="text-black">เครื่องปรุง</option>
-                  <option value="เครื่องดื่ม" className="text-black">เครื่องดื่ม</option>
-                  <option value="เครื่องเคียง" className="text-black">เครื่องเคียง</option>
-                  <option value="อื่นๆ" className="text-black">อื่นๆ</option>
-                </select>
-
-                <label htmlFor={`expense-amount-${index}`} className="sr-only">จำนวนเงิน</label>
-                <input
-                  id={`expense-amount-${index}`}
-                  name={`expense-amount-${index}`}
-                  type="number"
-                  placeholder="จำนวนเงิน"
-                  value={item.amount}
-                  onChange={(e) => updateExpenseItem(index, "amount", e.target.value)}
-                  className="border border-gray-500 shadow-sm p-2 rounded-lg focus:ring-2 focus:ring-blue-400"
-                />
-
-                <label htmlFor={`expense-note-${index}`} className="sr-only">หมายเหตุ</label>
-                <input
-                  id={`expense-note-${index}`}
-                  name={`expense-note-${index}`}
-                  type="text"
-                  placeholder="หมายเหตุ"
-                  value={item.note}
-                  onChange={(e) => updateExpenseItem(index, "note", e.target.value)}
-                  className="border border-gray-500 shadow-sm p-2 rounded-lg focus:ring-2 focus:ring-blue-400"
-                />
-              </div>
-            ))}
           </div>
+
+          <TransactionForm
+            type="income"
+            date={formIncome.date}
+            data={formIncome.data}
+            onAdd={addIncomeItem}
+            onRemove={removeIncomeItem}
+            onUpdate={updateIncomeItem}
+          />
+
+          <TransactionForm
+            type="expense"
+            date={formExpense.date}
+            data={formExpense.data}
+            onAdd={addExpenseItem}
+            onRemove={removeExpenseItem}
+            onUpdate={updateExpenseItem}
+          />
+
+          <TransactionForm
+            type="cost"
+            date={formCost.date}
+            data={formCost.data}
+            onAdd={addCostItem}
+            onRemove={removeCostItem}
+            onUpdate={updateCostItem}
+          />
+
           <button
             onClick={saveTransaction}
-            className="mt-4 bg-blue-600 shadow-md hover:bg-blue-700 text-white px-6 py-2 rounded-lg shadow"
+            disabled={isSaving || isGetData}
+            className={`mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 ${isSaving ? "opacity-50 cursor-not-allowed" : ""}`}
           >
-            {"บันทึก"}
+            {isSaving ?
+              <div className="flex space-x-2">
+                <svg className="mt-[2px] mr-3 -ml-1 size-5 animate-spin text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                กำลังบันทึก...
+              </div>
+              :
+              "บันทึกข้อมูล"}
           </button>
         </div>
 
-        {/* ตารางรายการ */}
-        <div className="bg-white p-6 rounded-xl shadow-lg">
-          <h2 className="text-xl font-semibold mb-4 text-gray-700">📅 รายการ</h2>
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="bg-blue-100 text-gray-700">
-                  <th className="p-2 border">วันที่</th>
-                  <th className="p-2 border">ประเภท</th>
-                  <th className="p-2 border">หมวดหมู่</th>
-                  <th className="p-2 border">จำนวนเงิน</th>
-                  <th className="p-2 border">หมายเหตุ</th>
-                  <th className="p-2 border">จัดการ</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sortedDates.map((date) => (
-                  <>
-                    <tr key={date} className="bg-gray-100">
-                      <td colSpan={6} className="p-2 font-semibold text-gray-700">
-                        📅 {date}
-                      </td>
-                    </tr>
-                    {groupedByDate[date].map((t) => (
-                      <tr key={t._id} className="hover:bg-gray-50 transition">
-                        <td className="p-2 border">{t.date}</td>
-                        <td className={`p-2 border border-black font-medium ${t.type === "income" ? "text-green-600" : "text-red-600"}`}>
-                          {t.type === "income" ? "รายรับ" : "รายจ่าย"}
-                        </td>
-                        <td className="p-2 border">{t.category}</td>
-                        <td className="p-2 border text-right">{t.amount.toLocaleString()}</td>
-                        <td className="p-2 border">{t.note}</td>
-                        <td className="p-2 border space-x-2 w-30">
-                          <button
-                            onClick={() => editTransaction(t)}
-                            className="px-2 py-1 bg-yellow-400 text-white rounded hover:bg-yellow-500"
-                          >
-                            แก้ไข
-                          </button>
-                          <button
-                            onClick={() => deleteTransaction(t._id)}
-                            className="px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600"
-                          >
-                            ลบ
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        {/* ตาราง */}
+        <TransactionTable
+          transactions={transactions}
+          onEdit={editTransaction}
+          onDelete={handleDeleteTransaction}
+          isSaving={isSaving}
+        />
 
         {/* ตารางสรุปรายวัน */}
         <div className="bg-white p-6 rounded-xl shadow-lg">
@@ -477,6 +333,7 @@ export default function App() {
               <thead>
                 <tr className="bg-indigo-100 text-gray-700">
                   <th className="p-2 border">วันที่</th>
+                  <th className="p-2 border">ต้นทุน</th>
                   <th className="p-2 border">รายรับรวม</th>
                   <th className="p-2 border">รายจ่ายรวม</th>
                   <th className="p-2 border">กำไร/ขาดทุน</th>
@@ -486,11 +343,10 @@ export default function App() {
                 {dailySummaryArray.map((d) => (
                   <tr key={d.date} className="hover:bg-gray-50 transition">
                     <td className="p-2 border font-medium">{d.date}</td>
+                    <td className="p-2 border border-black text-blue-500 text-right">{d.cost.toLocaleString()}</td>
                     <td className="p-2 border border-black text-green-600 text-right">{d.income.toLocaleString()}</td>
                     <td className="p-2 border border-black text-red-600 text-right">{d.expense.toLocaleString()}</td>
-                    <td className={`p-2 border border-black text-right font-semibold ${d.net >= 0 ? "text-green-700" : "text-red-700"}`}>
-                      {d.net.toLocaleString()}
-                    </td>
+                    <td className={`p-2 border border-black text-right font-semibold ${d.net >= 0 ? "text-green-700" : "text-red-700"}`}> {d.net.toLocaleString()} </td>
                   </tr>
                 ))}
               </tbody>
@@ -499,58 +355,53 @@ export default function App() {
         </div>
 
         {/* สรุปรวม */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div className="bg-yellow-100 p-6 rounded-xl shadow text-center">
-            <h3 className="text-lg font-semibold text-yellow-700">🟡 ต้นทุน</h3>
-            <p className="text-2xl font-bold text-yellow-800">{totalCost.toLocaleString()} บาท</p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-blue-100 p-6 rounded-xl shadow text-center">
+            <h3 className="text-lg font-semibold text-blue-700">🏷️ ต้นทุน</h3>
+            <p className="text-2xl font-bold text-blue-800">{totalCost.toLocaleString()} บาท</p>
           </div>
           <div className="bg-green-100 p-6 rounded-xl shadow text-center">
             <h3 className="text-lg font-semibold text-green-700">💰 รายรับรวม</h3>
             <p className="text-2xl font-bold text-green-800">{summary.income.toLocaleString()} บาท</p>
-          </div>
-          <div className="bg-red-100 p-6 rounded-xl shadow text-center">
+          </div> <div className="bg-red-100 p-6 rounded-xl shadow text-center">
             <h3 className="text-lg font-semibold text-red-700">💸 รายจ่ายรวม</h3>
             <p className="text-2xl font-bold text-red-800">{summary.expense.toLocaleString()} บาท</p>
           </div>
-          <div className="bg-indigo-100 p-6 rounded-xl shadow text-center">
-            <h3 className="text-lg font-semibold text-indigo-700">📊 กำไร/ขาดทุนสุทธิ</h3>
-            <p className="text-2xl font-bold text-indigo-800">{(summary.income - summary.expense).toLocaleString()} บาท</p>
+        </div>
+        <div className="flex flex-col md:flex-row justify-center space-y-6 md:space-y-0 space-x-6">
+          <div className="md:max-w-[310px] w-full bg-yellow-100 p-6 rounded-xl shadow text-center">
+            <h3 className="text-lg font-semibold text-yellow-700">📊 กำไรสุทธิ</h3>
+            <p className="text-2xl font-bold text-yellow-800">{(summary.income - summary.expense).toLocaleString()} บาท</p>
+          </div> <div className="md:max-w-[310px] w-full bg-orange-100 p-6 rounded-xl shadow text-center">
+            <h3 className="text-lg font-semibold text-orange-700">📊 กระแสเงินสด</h3>
+            <p className="text-2xl font-bold text-orange-800">{(summary.income + totalCost - summary.expense).toLocaleString()} บาท</p>
           </div>
         </div>
 
-
-        {/* กราฟ */}
+        {/* Chart */}
         <div className="bg-white p-6 rounded-xl shadow-lg">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold text-gray-700">📈 กราฟรายรับ–รายจ่าย</h2>
-            <div className="space-x-2">
-              <button
-                onClick={() => setChartMode("day")}
-                className={`px-3 py-1 rounded ${chartMode === "day" ? "bg-blue-600 text-white" : "bg-gray-200"}`}
-              >
-                รายวัน
-              </button>
-              {/* <button
-                onClick={() => setChartMode("week")}
-                className={`px-3 py-1 rounded ${chartMode === "week" ? "bg-blue-600 text-white" : "bg-gray-200"}`}
-              >
-                รายสัปดาห์
-              </button> */}
-            </div>
+          <div className="flex justify-between mb-4">
+            <h2 className="text-xl font-bold">📊 สรุปกราฟรายรับ–รายจ่าย</h2>
+            <select
+              value={chartMode}
+              onChange={(e) => setChartMode(e.target.value as "day" | "week")}
+              className="border border-gray-400 rounded p-1"
+            >
+              <option value="day">รายวัน</option>
+              {/* <option value="week">รายสัปดาห์</option> */}
+            </select>
           </div>
-
-          <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData}>
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="income" fill="#22c55e" name="รายรับ" />
-                <Bar dataKey="expense" fill="#ef4444" name="รายจ่าย" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={chartData}>
+              <XAxis dataKey="name" />
+              <YAxis />
+              <Tooltip />
+              <Legend />
+              <Bar dataKey="cost" fill="#3b82f6" name="ต้นทุน" />
+              <Bar dataKey="income" fill="#22c55e" name="รายรับ" />
+              <Bar dataKey="expense" fill="#ef4444" name="รายจ่าย" />
+            </BarChart>
+          </ResponsiveContainer>
         </div>
       </main>
 
@@ -560,6 +411,6 @@ export default function App() {
         transaction={editTransactionItem}
         onSave={saveEditedTransaction}
       />
-    </div>
+    </div >
   );
 }
