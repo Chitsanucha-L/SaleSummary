@@ -9,7 +9,6 @@ interface TransactionItem {
 
 interface TransactionFormProps {
   type: "income" | "expense" | "cost";
-  date: string;
   data: TransactionItem[];
   onAdd: () => void;
   onRemove: (index: number) => void;
@@ -73,7 +72,7 @@ const TransactionFormItem = ({
   );
 };
 
-const TransactionForm = ({ type, date, data, onAdd, onRemove, onUpdate }: TransactionFormProps) => {
+const TransactionForm = ({ type, data, onAdd, onRemove, onUpdate }: TransactionFormProps) => {
   const renderIcon = useMemo(() => type === "income"
     ? <BanknoteArrowUp className="mr-2 text-green-700" />
     : type === "expense"

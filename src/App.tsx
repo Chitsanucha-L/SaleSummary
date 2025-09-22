@@ -274,7 +274,6 @@ export default function App() {
 
           <TransactionForm
             type="income"
-            date={formIncome.date}
             data={formIncome.data}
             onAdd={addIncomeItem}
             onRemove={removeIncomeItem}
@@ -283,7 +282,6 @@ export default function App() {
 
           <TransactionForm
             type="expense"
-            date={formExpense.date}
             data={formExpense.data}
             onAdd={addExpenseItem}
             onRemove={removeExpenseItem}
@@ -292,7 +290,6 @@ export default function App() {
 
           <TransactionForm
             type="cost"
-            date={formCost.date}
             data={formCost.data}
             onAdd={addCostItem}
             onRemove={removeCostItem}
