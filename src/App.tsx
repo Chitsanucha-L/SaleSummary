@@ -192,7 +192,7 @@ export default function App() {
     {} as Record<string, { income: number; expense: number; cost: number }>);
 
   const dailySummaryArray = Object.entries(dailySummary).map(([date, { income, expense, cost }]) => ({
-    date, income, expense, cost, net: income - expense - cost, // กำไรสุทธิ ลบต้นทุนด้วย 
+    date, income, expense, cost, net: income - expense, // กำไรสุทธิ ลบต้นทุนด้วย 
   })).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
   // -------------------- Utilities --------------------
