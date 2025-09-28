@@ -12,7 +12,7 @@ export default function CategorySelect({ type, value, onChange, disabled }: Cate
   const options = useMemo(() => {
     switch (type) {
       case "income":
-        return ["ต้นทุน", "ขายอาหาร", "อื่นๆ"];
+        return ["Grab", "Lineman", "Shopeefood", "Robinhood", "หน้าร้าน", "อื่นๆ"];
       case "expense":
         return ["กุ้ง","แซลมอน","ผัก","บรรจุภัณฑ์","เครื่องปรุง","เครื่องดื่ม","เครื่องเคียง","อื่นๆ"];
       case "cost":

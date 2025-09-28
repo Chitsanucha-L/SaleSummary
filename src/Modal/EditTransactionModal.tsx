@@ -30,7 +30,7 @@ const EditTransactionModal = ({ open, onClose, transaction, onSave }: EditModalP
         if (!form) return [];
         switch (form.type) {
             case "income":
-                return ["ต้นทุน", "ขายอาหาร", "อื่นๆ"];
+                return ["Grab", "Lineman", "Shopeefood", "Robinhood", "หน้าร้าน", "อื่นๆ"];
             case "expense":
                 return ["กุ้ง", "แซลมอน", "ผัก", "บรรจุภัณฑ์", "เครื่องปรุง", "เครื่องดื่ม", "เครื่องเคียง", "อื่นๆ"];
             case "cost":
@@ -56,7 +56,7 @@ const EditTransactionModal = ({ open, onClose, transaction, onSave }: EditModalP
     };
 
     return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-100">
             <div className="bg-white p-6 rounded-lg w-full max-w-md shadow-lg">
                 <div className="flex items-center justify-between mb-4">
                     <h2 className="text-xl font-semibold mb-4">แก้ไขรายการ</h2>
@@ -64,9 +64,13 @@ const EditTransactionModal = ({ open, onClose, transaction, onSave }: EditModalP
                         <div className="mb-4 text-green-700 font-semibold flex items-center">
                             <BanknoteArrowUp className="mr-2" /> รายรับ
                         </div>
-                    ) : (
+                    ) : transaction.type === "expense" ? (
                         <div className="mb-4 text-red-700 font-semibold flex items-center">
                             <BanknoteArrowDown className="mr-2" /> รายจ่าย
+                        </div>
+                    ) : (
+                        <div className="mb-4 text-blue-700 font-semibold flex items-center">
+                            🏷️ ต้นทุน
                         </div>
                     )}
                 </div>
