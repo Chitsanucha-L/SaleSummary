@@ -4,6 +4,7 @@ import TransactionForm from "./components/TransactionForm";
 import EditTransactionModal from "./Modal/EditTransactionModal";
 import DailySummaryTable from "./components/DailySummaryTable";
 import DailySummaryModal from "./Modal/DailySummaryModal";
+import { DatePicker } from "./components/DatePicker";
 
 export interface Transaction {
   _id: string;
@@ -328,13 +329,7 @@ export default function App() {
         {/* ฟอร์มบันทึก */}
         <div className="col-span-2 lg:col-span-1 bg-white p-6 rounded-xl shadow-lg">
           <div className="grid grid-cols-2 gap-2 items-center">
-            <input
-              type="date"
-              value={formIncome.date}
-              onChange={(e) => handleDateChange(e.target.value)}
-              className="w-full max-w-full border border-gray-500 shadow-sm p-2 rounded-lg mb-4"
-              style={{ minWidth: 0 }}
-            />
+            <DatePicker date={formIncome.date} onChange={handleDateChange} />
           </div>
 
           <TransactionForm

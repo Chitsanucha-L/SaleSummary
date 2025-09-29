@@ -26,12 +26,12 @@ const DailySummaryTable = ({ dailySummaryArray, onClickRow }: DailySummaryTableP
                 <table className="w-full border-collapse">
                     <thead>
                         <tr className="bg-indigo-100 text-gray-700">
-                            <th className="p-2 border">วันที่</th>
-                            <th className="p-2 border">ต้นทุน</th>
-                            <th className="p-2 border">รายรับรวม</th>
-                            <th className="p-2 border">รายจ่ายรวม</th>
-                            <th className="p-2 border">กำไร/ขาดทุน</th>
-                            <th className="p-2 border">กระแสเงินสด</th>
+                            <th className="p-2 border border-black">วันที่</th>
+                            <th className="p-2 border border-black">ต้นทุน</th>
+                            <th className="p-2 border border-black">รายรับรวม</th>
+                            <th className="p-2 border border-black">รายจ่ายรวม</th>
+                            <th className="p-2 border border-black">กำไร/ขาดทุน</th>
+                            <th className="p-2 border border-black">กระแสเงินสด</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -51,7 +51,7 @@ const DailySummaryTable = ({ dailySummaryArray, onClickRow }: DailySummaryTableP
                                     className="hover:bg-gray-50 transition cursor-pointer"
                                     onClick={() => handleClick(d.date)}
                                 >
-                                    <td className="p-2 border font-medium">{d.date}</td>
+                                    <td className="p-2 border border-black font-medium">{d.date}</td>
                                     <td className="p-2 border border-black text-blue-500 text-right">{d.cost.toLocaleString()}</td>
                                     <td className="p-2 border border-black text-green-600 text-right">{d.income.toLocaleString()}</td>
                                     <td className="p-2 border border-black text-red-600 text-right">{d.expense.toLocaleString()}</td>
