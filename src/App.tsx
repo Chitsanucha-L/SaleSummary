@@ -332,7 +332,8 @@ export default function App() {
               type="date"
               value={formIncome.date}
               onChange={(e) => handleDateChange(e.target.value)}
-              className="w-full border border-gray-500 shadow-sm p-2 rounded-lg mb-4"
+              className="w-full max-w-full border border-gray-500 shadow-sm p-2 rounded-lg mb-4"
+              style={{ minWidth: 0 }}
             />
           </div>
 
