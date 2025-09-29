@@ -325,7 +325,7 @@ export default function App() {
         <h1 className="text-center text-2xl font-bold">🍜 ระบบติดตามรายรับ–รายจ่าย ร้านอาหาร</h1>
       </header>
 
-      <main className="grid grid-cols-2 lg:grid-cols-3 gap-0 lg:gap-6 p-4 md:p-6 max-w-[96rem] mx-auto space-y-8 pb-16">
+      <main className="grid grid-cols-2 lg:grid-cols-3 gap-0 lg:gap-4 p-4 md:p-6 max-w-[96rem] mx-auto space-y-8 pb-16">
         {/* ฟอร์มบันทึก */}
         <div className="col-span-2 lg:col-span-1 bg-white p-6 rounded-xl shadow-lg">
           <div className="grid grid-cols-2 gap-2 items-center">
@@ -377,87 +377,156 @@ export default function App() {
         {/* ตารางสรุปรายวัน */}
         <div className="col-span-2">
           <DailySummaryTable
+            isLoading={!isGetData}
             dailySummaryArray={dailySummaryArray}
             onClickRow={handleClickDailyRow}
           />
         </div>
 
+        <div className="col-span-2 lg:col-span-3 grid grid-cols-1 lg:grid-cols-4 gap-4">
+          {/* Chart */}
+          <div className="lg:col-span-3 order-2 lg:order-1">
+            {/* กราฟรายรับ-รายจ่าย */}
+            <div className="col-span-3 xl:col-span-1 bg-white p-6 rounded-xl shadow-lg mb-5">
+              <div className="flex justify-between mb-4">
+                <h2 className="text-xl font-bold">📊 สรุปกราฟรายรับ–รายจ่าย</h2>
+                <select
+                  value={chartMode}
+                  onChange={(e) => setChartMode(e.target.value as "day" | "week")}
+                  className="border border-gray-400 rounded p-1"
+                >
+                  <option value="day">รายวัน</option>
+                </select>
+              </div>
 
-        {/* สรุปรวม */}
-        <div className="col-span-2 lg:col-span-3 grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5  gap-6">
-          <div className="bg-blue-100 p-6 rounded-xl shadow text-center">
-            <h3 className="text-lg font-semibold text-blue-700">🏷️ ต้นทุน</h3>
-            <p className="text-2xl font-bold text-blue-800">{totalCost.toLocaleString()} บาท</p>
-          </div>
-          <div className="bg-green-100 p-6 rounded-xl shadow text-center">
-            <h3 className="text-lg font-semibold text-green-700">💰 รายรับรวม</h3>
-            <p className="text-2xl font-bold text-green-800">{summary.income.toLocaleString()} บาท</p>
-          </div> <div className="bg-red-100 p-6 rounded-xl shadow text-center">
-            <h3 className="text-lg font-semibold text-red-700">💸 รายจ่ายรวม</h3>
-            <p className="text-2xl font-bold text-red-800">{summary.expense.toLocaleString()} บาท</p>
-          </div>
-          <div className="w-full bg-yellow-100 p-6 rounded-xl shadow text-center">
-            <h3 className="text-lg font-semibold text-yellow-700">📊 กำไรสุทธิ</h3>
-            <p className="text-2xl font-bold text-yellow-800">{(summary.income - summary.expense).toLocaleString()} บาท</p>
-          </div> <div className="w-full bg-orange-100 p-6 rounded-xl shadow text-center">
-            <h3 className="text-lg font-semibold text-orange-700">📊 กระแสเงินสด</h3>
-            <p className="text-2xl font-bold text-orange-800">{(summary.income + totalCost - summary.expense).toLocaleString()} บาท</p>
-          </div>
-        </div>
+              {!isGetData ? (
+                // ✅ แสดง Loader ขณะกำลังโหลดข้อมูล
+                <div className="flex items-center justify-center h-[300px]">
+                  <div className="py-2 px-3 bg-gray-100 rounded-md flex items-center space-x-2 shadow-md">
+                    <svg
+                      className="size-5 animate-spin text-gray-600"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                    <span>กำลังโหลดข้อมูล...</span>
+                  </div>
+                </div>
+              ) : (
+                // ✅ ข้อมูลโหลดแล้วค่อยแสดงกราฟ
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={chartData}>
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="cost" fill="#3b82f6" name="ต้นทุน" />
+                    <Bar dataKey="income" fill="#22c55e" name="รายรับ" />
+                    <Bar dataKey="expense" fill="#ef4444" name="รายจ่าย" />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </div>
 
-        {/* Chart */}
-        <div className="col-span-3 xl:col-span-1 bg-white p-6 rounded-xl shadow-lg mb-5 xl:mb-0">
-          <div className="flex justify-between mb-4">
-            <h2 className="text-xl font-bold">📊 สรุปกราฟรายรับ–รายจ่าย</h2>
-            <select
-              value={chartMode}
-              onChange={(e) => setChartMode(e.target.value as "day" | "week")}
-              className="border border-gray-400 rounded p-1"
-            >
-              <option value="day">รายวัน</option>
-              {/* <option value="week">รายสัปดาห์</option> */}
-            </select>
-          </div>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={chartData}>
-              <XAxis dataKey="name" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="cost" fill="#3b82f6" name="ต้นทุน" />
-              <Bar dataKey="income" fill="#22c55e" name="รายรับ" />
-              <Bar dataKey="expense" fill="#ef4444" name="รายจ่าย" />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+            {/* กราฟยอดขายแต่ละช่องทาง */}
+            <div className="bg-white p-6 rounded-xl shadow-lg">
+              <div className="flex justify-between mb-4">
+                <h2 className="text-xl font-bold">📊 ยอดขายแต่ละช่องทาง</h2>
+                <select
+                  value={salesChartMode}
+                  onChange={(e) => setSalesChartMode(e.target.value as "day" | "month" | "all")}
+                  className="border border-gray-400 rounded p-1"
+                >
+                  <option value="day">รายวัน</option>
+                  <option value="month">รายเดือน</option>
+                  <option value="all">ทั้งหมด</option>
+                </select>
+              </div>
 
-        <div className="col-span-3 xl:col-span-2 bg-white p-6 rounded-xl shadow-lg">
-          <div className="flex justify-between mb-4">
-            <h2 className="text-xl font-bold">📊 ยอดขายแต่ละช่องทาง</h2>
-            <select
-              value={salesChartMode}
-              onChange={(e) => setSalesChartMode(e.target.value as "day" | "month" | "all")}
-              className="border border-gray-400 rounded p-1"
-            >
-              <option value="day">รายวัน</option>
-              <option value="month">รายเดือน</option>
-              <option value="all">ทั้งหมด</option>
-            </select>
+              {!isGetData ? (
+                <div className="flex items-center justify-center h-[300px]">
+                  <div className="py-2 px-3 bg-gray-100 rounded-md flex items-center space-x-2 shadow-md">
+                    <svg
+                      className="size-5 animate-spin text-gray-600"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                    <span>กำลังโหลดข้อมูล...</span>
+                  </div>
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={salesChannelChartData}>
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="Grab" fill="#1cb454ff" />
+                    <Bar dataKey="Lineman" fill="#3b82f6" />
+                    <Bar dataKey="ShopeeFood" fill="#f97316" />
+                    <Bar dataKey="Robinhood" fill="#8054e7ff" />
+                    <Bar dataKey="หน้าร้าน" fill="#facc15" />
+                    <Bar dataKey="อื่นๆ" fill="#6b7280" />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </div>
           </div>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={salesChannelChartData}>
-              <XAxis dataKey="name" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="Grab" fill="#1cb454ff" />
-              <Bar dataKey="Lineman" fill="#3b82f6" />
-              <Bar dataKey="ShopeeFood" fill="#f97316" />
-              <Bar dataKey="Robinhood" fill="#8054e7ff" />
-              <Bar dataKey="หน้าร้าน" fill="#facc15" />
-              <Bar dataKey="อื่นๆ" fill="#6b7280" />
-            </BarChart>
-          </ResponsiveContainer>
+
+          {/* สรุปรวม */}
+          <div className="lg:col-span-1 order-1 lg:order-2 flex flex-col gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-4">
+              <div className="bg-blue-100 p-6 rounded-xl shadow text-center">
+                <h3 className="text-lg font-semibold text-blue-700">🏷️ ต้นทุน</h3>
+                <p className="text-2xl font-bold text-blue-800">{totalCost.toLocaleString()} บาท</p>
+              </div>
+              <div className="bg-green-100 p-6 rounded-xl shadow text-center">
+                <h3 className="text-lg font-semibold text-green-700">💰 รายรับรวม</h3>
+                <p className="text-2xl font-bold text-green-800">{summary.income.toLocaleString()} บาท</p>
+              </div>
+              <div className="bg-red-100 p-6 rounded-xl shadow text-center">
+                <h3 className="text-lg font-semibold text-red-700">💸 รายจ่ายรวม</h3>
+                <p className="text-2xl font-bold text-red-800">{summary.expense.toLocaleString()} บาท</p>
+              </div>
+              <div className="bg-yellow-100 p-6 rounded-xl shadow text-center">
+                <h3 className="text-lg font-semibold text-yellow-700">📊 กำไรสุทธิ</h3>
+                <p className="text-2xl font-bold text-yellow-800">{(summary.income - summary.expense).toLocaleString()} บาท</p>
+              </div>
+              <div className="bg-orange-100 p-6 rounded-xl shadow text-center">
+                <h3 className="text-lg font-semibold text-orange-700">📊 กระแสเงินสด</h3>
+                <p className="text-2xl font-bold text-orange-800">{(summary.income + totalCost - summary.expense).toLocaleString()} บาท</p>
+              </div>
+            </div>
+          </div>
         </div>
       </main>
 

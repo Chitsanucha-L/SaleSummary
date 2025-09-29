@@ -12,9 +12,10 @@ interface DailySummaryItem {
 interface DailySummaryTableProps {
     dailySummaryArray: DailySummaryItem[];
     onClickRow: (date: string) => void;
+    isLoading?: boolean;
 }
 
-const DailySummaryTable = ({ dailySummaryArray, onClickRow }: DailySummaryTableProps) => {
+const DailySummaryTable = ({ dailySummaryArray, onClickRow, isLoading }: DailySummaryTableProps) => {
     const handleClick = useCallback((date: string) => {
         onClickRow(date);
     }, [onClickRow]);
@@ -35,31 +36,76 @@ const DailySummaryTable = ({ dailySummaryArray, onClickRow }: DailySummaryTableP
                         </tr>
                     </thead>
                     <tbody>
-                        {dailySummaryArray.length === 0 ? (
+                        {isLoading ? (
+                            // Loading State
                             <tr>
-                                <td
-                                    colSpan={6}
-                                    className="p-3 text-center text-gray-500 border"
-                                >
+                                <td colSpan={6} className="p-4 text-center text-gray-500 border">
+                                    <div className="flex items-center justify-center">
+                                        <div className="py-2 px-3 bg-gray-100 rounded-md flex items-center space-x-2 shadow-md">
+                                            <svg
+                                                className="size-5 animate-spin text-gray-600"
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                fill="none"
+                                                viewBox="0 0 24 24"
+                                            >
+                                                <circle
+                                                    className="opacity-25"
+                                                    cx="12"
+                                                    cy="12"
+                                                    r="10"
+                                                    stroke="currentColor"
+                                                    strokeWidth="4"
+                                                ></circle>
+                                                <path
+                                                    className="opacity-75"
+                                                    fill="currentColor"
+                                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                                ></path>
+                                            </svg>
+                                            <span>กำลังโหลดข้อมูล...</span>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        ) : dailySummaryArray.length === 0 ? (
+                            // Empty State
+                            <tr>
+                                <td colSpan={6} className="p-3 text-center text-gray-500 border">
                                     ไม่มีข้อมูล
                                 </td>
                             </tr>
                         ) : (
-                            dailySummaryArray.map(d => (
+                            // Data State
+                            dailySummaryArray.map((d) => (
                                 <tr
                                     key={d.date}
                                     className="hover:bg-gray-50 transition cursor-pointer"
                                     onClick={() => handleClick(d.date)}
                                 >
-                                    <td className="p-2 border border-black font-medium">{d.date}</td>
-                                    <td className="p-2 border border-black text-blue-500 text-right">{d.cost.toLocaleString()}</td>
-                                    <td className="p-2 border border-black text-green-600 text-right">{d.income.toLocaleString()}</td>
-                                    <td className="p-2 border border-black text-red-600 text-right">{d.expense.toLocaleString()}</td>
-                                    <td className={`p-2 border border-black text-right font-semibold ${d.net >= 0 ? "text-green-700" : "text-red-700"}`}>{d.net.toLocaleString()}</td>
-                                    <td className={`p-2 border border-black text-right font-semibold ${d.cashFlow >= 0 ? "text-green-700" : "text-red-700"}`}>{d.cashFlow.toLocaleString()}</td>
+                                    <td className="p-2 border border-black font-[450]">{d.date}</td>
+                                    <td className="p-2 border border-black text-blue-500 text-right">
+                                        {d.cost.toLocaleString()}
+                                    </td>
+                                    <td className="p-2 border border-black text-green-600 text-right">
+                                        {d.income.toLocaleString()}
+                                    </td>
+                                    <td className="p-2 border border-black text-red-600 text-right">
+                                        {d.expense.toLocaleString()}
+                                    </td>
+                                    <td
+                                        className={`p-2 border border-black text-right font-semibold ${d.net >= 0 ? "text-green-700" : "text-red-700"
+                                            }`}
+                                    >
+                                        {d.net.toLocaleString()}
+                                    </td>
+                                    <td
+                                        className={`p-2 border border-black text-right font-semibold ${d.cashFlow >= 0 ? "text-green-700" : "text-red-700"
+                                            }`}
+                                    >
+                                        {d.cashFlow.toLocaleString()}
+                                    </td>
                                 </tr>
                             ))
-
                         )}
                     </tbody>
                 </table>
