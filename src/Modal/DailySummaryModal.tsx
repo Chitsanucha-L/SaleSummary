@@ -43,7 +43,7 @@ const DailySummaryModal = ({ open, date, transactions, onClose, onEdit, onDelete
                         ) : (
                             transactions.map(t => (
                                 <tr key={t._id} className="hover:bg-gray-50">
-                                    <td className={`p-2 border border-black font-medium text-center ${t.type === "income" ? "text-green-700" : t.type === "expense" ? "text-red-700" : "text-blue-700"}`}>
+                                    <td className={`p-2 border font-medium text-center ${t.type === "income" ? "text-green-700" : t.type === "expense" ? "text-red-700" : "text-blue-700"}`}>
                                         {t.type === "income" ? "รายรับ" : t.type === "expense" ? "รายจ่าย" : "ต้นทุน"}
                                     </td>
                                     <td className="p-2 border text-center">{t.category}</td>

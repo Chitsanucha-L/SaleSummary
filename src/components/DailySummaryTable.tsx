@@ -27,12 +27,12 @@ const DailySummaryTable = ({ dailySummaryArray, onClickRow, isLoading }: DailySu
                 <table className="w-full border-collapse">
                     <thead>
                         <tr className="bg-indigo-100 text-gray-700">
-                            <th className="p-2 border border-black">วันที่</th>
-                            <th className="p-2 border border-black">ต้นทุน</th>
-                            <th className="p-2 border border-black">รายรับรวม</th>
-                            <th className="p-2 border border-black">รายจ่ายรวม</th>
-                            <th className="p-2 border border-black">กำไร/ขาดทุน</th>
-                            <th className="p-2 border border-black">กระแสเงินสด</th>
+                            <th className="p-2 border border-gray-600">วันที่</th>
+                            <th className="p-2 border border-gray-600">ต้นทุน</th>
+                            <th className="p-2 border border-gray-600">รายรับรวม</th>
+                            <th className="p-2 border border-gray-600">รายจ่ายรวม</th>
+                            <th className="p-2 border border-gray-600">กำไร/ขาดทุน</th>
+                            <th className="p-2 border border-gray-600">กระแสเงินสด</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -82,24 +82,24 @@ const DailySummaryTable = ({ dailySummaryArray, onClickRow, isLoading }: DailySu
                                     className="hover:bg-gray-50 transition cursor-pointer"
                                     onClick={() => handleClick(d.date)}
                                 >
-                                    <td className="p-2 border border-black font-[450]">{d.date}</td>
-                                    <td className="p-2 border border-black text-blue-500 text-right">
+                                    <td className="p-2 border border-gray-600 font-[450]">{d.date}</td>
+                                    <td className="p-2 border border-gray-600 text-blue-500 text-right">
                                         {d.cost.toLocaleString()}
                                     </td>
-                                    <td className="p-2 border border-black text-green-600 text-right">
+                                    <td className="p-2 border border-gray-600 text-green-600 text-right">
                                         {d.income.toLocaleString()}
                                     </td>
-                                    <td className="p-2 border border-black text-red-600 text-right">
+                                    <td className="p-2 border border-gray-600 text-red-600 text-right">
                                         {d.expense.toLocaleString()}
                                     </td>
                                     <td
-                                        className={`p-2 border border-black text-right font-semibold ${d.net >= 0 ? "text-green-700" : "text-red-700"
+                                        className={`p-2 border border-gray-600 text-right font-semibold ${d.net >= 0 ? "text-green-700" : "text-red-700"
                                             }`}
                                     >
                                         {d.net.toLocaleString()}
                                     </td>
                                     <td
-                                        className={`p-2 border border-black text-right font-semibold ${d.cashFlow >= 0 ? "text-green-700" : "text-red-700"
+                                        className={`p-2 border border-gray-600 text-right font-semibold ${d.cashFlow >= 0 ? "text-green-700" : "text-red-700"
                                             }`}
                                     >
                                         {d.cashFlow.toLocaleString()}
