@@ -1,5 +1,6 @@
 import { FilePenLine, Trash2 } from "lucide-react";
 import type { Transaction } from "../App"; // หรือ import interface จากไฟล์หลัก
+import { format } from "date-fns"
 
 interface DailySummaryModalProps {
     open: boolean;
@@ -17,7 +18,7 @@ const DailySummaryModal = ({ open, date, transactions, onClose, onEdit, onDelete
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             <div className="bg-white p-6 rounded-lg w-full max-w-2xl shadow-lg overflow-y-auto max-h-[80vh]">
                 <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-xl font-semibold">รายการธุรกรรมวันที่ {date}</h2>
+                    <h2 className="text-xl font-semibold">รายการธุรกรรมวันที่ {format(new Date(date), "dd/MM/yyyy")}</h2>
                     <button onClick={onClose} className="text-white font-bold py-1.5 px-2.5 bg-red-500 rounded-lg shadow-md">ปิด</button>
                 </div>
                 <table className="w-full border-collapse">

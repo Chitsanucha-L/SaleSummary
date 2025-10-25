@@ -1,28 +1,59 @@
-import { useCallback } from "react";
+import { useCallback } from "react"
+import { format } from "date-fns"
+import { MonthYearPicker } from "./MonthYearPicker"
 
 interface DailySummaryItem {
-    date: string;
-    income: number;
-    expense: number;
-    cost: number;
-    net: number;
-    cashFlow: number;
+    date: string
+    income: number
+    expense: number
+    cost: number
+    net: number
+    cashFlow: number
 }
 
 interface DailySummaryTableProps {
-    dailySummaryArray: DailySummaryItem[];
-    onClickRow: (date: string) => void;
-    isLoading?: boolean;
+    dailySummaryArray: DailySummaryItem[]
+    onClickRow: (date: string) => void
+    isLoading?: boolean
+    year: number
+    month: number
+    setYear: (year: number) => void
+    setMonth: (month: number) => void
 }
 
-const DailySummaryTable = ({ dailySummaryArray, onClickRow, isLoading }: DailySummaryTableProps) => {
-    const handleClick = useCallback((date: string) => {
-        onClickRow(date);
-    }, [onClickRow]);
+const DailySummaryTable = ({
+    dailySummaryArray,
+    onClickRow,
+    isLoading,
+    year,
+    month,
+    setYear,
+    setMonth,
+}: DailySummaryTableProps) => {
+    const handleClick = useCallback(
+        (date: string) => {
+            onClickRow(date)
+        },
+        [onClickRow]
+    )
 
     return (
         <div className="bg-white p-6 rounded-xl shadow-lg">
-            <h2 className="text-xl font-semibold mb-4 text-gray-700">📅 สรุปรายวัน</h2>
+            <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold text-gray-700">📅 สรุปรายวัน</h2>
+                <div>
+                    <MonthYearPicker
+                        selectedYear={year}
+                        selectedMonth={month}
+                        onChange={(y, m) => {
+                            setYear(y)
+                            setMonth(m)
+                            console.log("Selected:", y, m + 1)
+                        }}
+                        disabled={isLoading}
+                    />
+                </div>
+            </div>
             <div className="overflow-x-auto">
                 <table className="w-full border-collapse">
                     <thead>
@@ -37,7 +68,6 @@ const DailySummaryTable = ({ dailySummaryArray, onClickRow, isLoading }: DailySu
                     </thead>
                     <tbody>
                         {isLoading ? (
-                            // Loading State
                             <tr>
                                 <td colSpan={6} className="p-4 text-center text-gray-500 border">
                                     <div className="flex items-center justify-center">
@@ -68,50 +98,58 @@ const DailySummaryTable = ({ dailySummaryArray, onClickRow, isLoading }: DailySu
                                 </td>
                             </tr>
                         ) : dailySummaryArray.length === 0 ? (
-                            // Empty State
                             <tr>
                                 <td colSpan={6} className="p-3 text-center text-gray-500 border">
                                     ไม่มีข้อมูล
                                 </td>
                             </tr>
                         ) : (
-                            // Data State
-                            dailySummaryArray.map((d) => (
-                                <tr
-                                    key={d.date}
-                                    className="hover:bg-gray-50 transition cursor-pointer"
-                                    onClick={() => handleClick(d.date)}
-                                >
-                                    <td className="p-2 border border-gray-600 font-[450]">{d.date}</td>
-                                    <td className="p-2 border border-gray-600 text-blue-500 text-right">
-                                        {d.cost.toLocaleString()}
-                                    </td>
-                                    <td className="p-2 border border-gray-600 text-green-600 text-right">
-                                        {d.income.toLocaleString()}
-                                    </td>
-                                    <td className="p-2 border border-gray-600 text-red-600 text-right">
-                                        {d.expense.toLocaleString()}
-                                    </td>
-                                    <td
-                                        className={`p-2 border border-gray-600 text-right font-semibold ${d.net >= 0 ? "text-green-700" : "text-red-700"
-                                            }`}
+                            dailySummaryArray.map((d) => {
+                                // ✅ แปลงวันที่เป็น dd/MM/yyyy
+                                let formattedDate = d.date
+                                try {
+                                    formattedDate = format(new Date(d.date), "dd/MM/yyyy")
+                                } catch (err) {
+                                    console.warn("Invalid date:", d.date)
+                                }
+
+                                return (
+                                    <tr
+                                        key={d.date}
+                                        className="hover:bg-gray-50 transition cursor-pointer"
+                                        onClick={() => handleClick(d.date)}
                                     >
-                                        {d.net.toLocaleString()}
-                                    </td>
-                                    <td
-                                        className={`p-2 border border-gray-600 text-right font-semibold ${d.cashFlow >= 0 ? "text-green-700" : "text-red-700"
-                                            }`}
-                                    >
-                                        {d.cashFlow.toLocaleString()}
-                                    </td>
-                                </tr>
-                            ))
+                                        <td className="p-2 border border-gray-600 font-[450]">{formattedDate}</td>
+                                        <td className="p-2 border border-gray-600 text-blue-500 text-right">
+                                            {d.cost.toLocaleString()}
+                                        </td>
+                                        <td className="p-2 border border-gray-600 text-green-600 text-right">
+                                            {d.income.toLocaleString()}
+                                        </td>
+                                        <td className="p-2 border border-gray-600 text-red-600 text-right">
+                                            {d.expense.toLocaleString()}
+                                        </td>
+                                        <td
+                                            className={`p-2 border border-gray-600 text-right font-semibold ${d.net >= 0 ? "text-green-700" : "text-red-700"
+                                                }`}
+                                        >
+                                            {d.net.toLocaleString()}
+                                        </td>
+                                        <td
+                                            className={`p-2 border border-gray-600 text-right font-semibold ${d.cashFlow >= 0 ? "text-green-700" : "text-red-700"
+                                                }`}
+                                        >
+                                            {d.cashFlow.toLocaleString()}
+                                        </td>
+                                    </tr>
+                                )
+                            })
                         )}
                     </tbody>
                 </table>
             </div>
         </div>
-    );
-};
+    )
+}
 
-export default DailySummaryTable;
+export default DailySummaryTable

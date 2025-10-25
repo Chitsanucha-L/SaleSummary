@@ -1,3 +1,4 @@
+import { DatePicker } from "@/components/DatePicker";
 import { BanknoteArrowDown, BanknoteArrowUp } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
@@ -75,18 +76,18 @@ const EditTransactionModal = ({ open, onClose, transaction, onSave }: EditModalP
                     )}
                 </div>
 
-                <input
-                    type="date"
-                    value={form?.date || ""}
-                    onChange={(e) => setForm({ ...form!, date: e.target.value })}
-                    className="w-full mb-2 border p-2 rounded"
+                <DatePicker
+                    date={form?.date || ""}               
+                    onChange={(d) =>                      
+                        setForm({ ...form!, date: d })     
+                    }
                     disabled={isSaving}
                 />
 
                 <select
                     value={form?.category || ""}
                     onChange={(e) => setForm({ ...form!, category: e.target.value })}
-                    className="w-full mb-2 border p-2 rounded"
+                    className="w-full mb-2 border border-gray-500 p-2 rounded-md"
                     disabled={isSaving}
                 >
                     <option value="">-- เลือกหมวดหมู่ --</option>
@@ -100,7 +101,7 @@ const EditTransactionModal = ({ open, onClose, transaction, onSave }: EditModalP
                     placeholder="จำนวนเงิน"
                     value={form?.amount || ""}
                     onChange={(e) => setForm({ ...form!, amount: Number(e.target.value) })}
-                    className="w-full mb-2 border p-2 rounded"
+                    className="w-full mb-2 border border-gray-500 p-2 rounded-md"
                     disabled={isSaving}
                 />
 
@@ -109,7 +110,7 @@ const EditTransactionModal = ({ open, onClose, transaction, onSave }: EditModalP
                     placeholder="หมายเหตุ"
                     value={form?.note || ""}
                     onChange={(e) => setForm({ ...form!, note: e.target.value })}
-                    className="w-full mb-4 border p-2 rounded"
+                    className="w-full mb-4 border border-gray-500 p-2 rounded-md"
                     disabled={isSaving}
                 />
 

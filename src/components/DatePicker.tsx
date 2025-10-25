@@ -9,31 +9,56 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 
-export function DatePicker({ date, onChange }: { date: string, onChange: (d: string) => void }) {
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(date ? new Date(date) : new Date())
+interface DatePickerProps {
+  date: string
+  onChange: (d: string) => void
+  disabled?: boolean // ✅ optional prop (ไม่ต้องใส่ทุกครั้งก็ได้)
+}
+
+export function DatePicker({ date, onChange, disabled = false }: DatePickerProps) {
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(
+    date ? new Date(date) : undefined
+  )
+  const [open, setOpen] = useState(false)
 
   const handleSelect = (d: Date | undefined) => {
     setSelectedDate(d)
-    if (d) onChange(format(d, "yyyy-MM-dd"))
+    if (d) {
+      onChange(format(d, "dd/MM/yyyy"))
+      setOpen(false)
+    }
   }
 
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="outline" className="flex w-full text-left justify-between items-center text-center mb-4">
-          <span className="text-[15px] font-medium mt-[4px]">
-            {selectedDate ? format(selectedDate, "yyyy-MM-dd") : "เลือกวันที่"}
+        <Button
+          variant="outline"
+          disabled={disabled} // ✅ ใช้ prop disabled ที่นี่
+          onClick={() => !disabled && setOpen(!open)}
+          className={`flex w-full text-left justify-between items-center mb-2 ${
+            disabled ? "opacity-60 cursor-not-allowed" : ""
+          }`}
+        >
+          <span className="text-[15px] font-medium mt-[2px]">
+            {selectedDate ? format(selectedDate, "dd/MM/yyyy") : "เลือกวันที่"}
           </span>
           <CalendarIcon
             size={17}
-            className="text-gray-600 group-hover:text-foreground shrink-0 transition-colors"
-            aria-hidden="true"
+            className="text-gray-600 shrink-0 transition-colors"
           />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0">
-        <Calendar className="p-2" mode="single" selected={selectedDate} onSelect={handleSelect} />
-      </PopoverContent>
+      {!disabled && (
+        <PopoverContent className="w-auto p-0">
+          <Calendar
+            className="p-2"
+            mode="single"
+            selected={selectedDate}
+            onSelect={handleSelect}
+          />
+        </PopoverContent>
+      )}
     </Popover>
   )
 }

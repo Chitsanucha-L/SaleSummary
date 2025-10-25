@@ -15,6 +15,8 @@ export interface Transaction {
   note: string;
 }
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL;
+
 export default function App() {
   const today = new Date().toISOString().split("T")[0];
 
@@ -46,13 +48,19 @@ export default function App() {
     return transactions.filter(t => t.date === selectedDate);
   }, [transactions, selectedDate]);
 
+  const now = new Date();
+  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState(now.getMonth());
+
 
   // -------------------- Fetch Transactions --------------------
   useEffect(() => {
     const fetchTransactions = async () => {
+      if (selectedYear == null || selectedMonth == null) return;
+
       setIsGetData(false);
       try {
-        const res = await fetch("https://backend-sale-summary.vercel.app/api/transactions");
+        const res = await fetch(`${API_BASE}/api/transactions?year=${selectedYear}&month=${selectedMonth}`);
         const data = await res.json();
         setTransactions(data);
       } catch (err) {
@@ -60,8 +68,10 @@ export default function App() {
       }
       setIsGetData(true);
     };
+
     fetchTransactions();
-  }, []);
+  }, [selectedYear, selectedMonth]);
+
 
   // -------------------- Handler useCallback --------------------
   const updateIncomeItem = useCallback(
@@ -151,7 +161,7 @@ export default function App() {
     setIsSaving(true);
     try {
       const saved = await Promise.all(newTransactions.map(async t => {
-        const res = await fetch("https://backend-sale-summary.vercel.app/api/transactions", {
+        const res = await fetch(`${API_BASE}/api/transactions`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(t)
@@ -249,7 +259,7 @@ export default function App() {
     if (!confirm("คุณต้องการลบรายการนี้หรือไม่?")) return;
     setIsSaving(true);
     try {
-      await fetch(`https://backend-sale-summary.vercel.app/api/transactions/${id}`, { method: "DELETE" });
+      await fetch(`${API_BASE}/api/transactions/${id}`, { method: "DELETE" });
       setTransactions(prev => prev.filter(t => t._id !== id));
     } catch (err) {
       console.error(err);
@@ -273,7 +283,7 @@ export default function App() {
   const saveEditedTransaction = async (updated: Transaction) => {
     try {
       const res = await fetch(` 
-        https://backend-sale-summary.vercel.app/api/transactions/${updated._id}`,
+        ${API_BASE}/api/transactions/${updated._id}`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -306,7 +316,7 @@ export default function App() {
       }
 
       if (!grouped[key]) {
-        grouped[key] = { Grab: 0, Lineman: 0, ShopeeFood: 0, Robinhood: 0, "หน้าร้าน": 0, "อื่นๆ": 0 };
+        grouped[key] = { Grab: 0, Lineman: 0, Shopeefood: 0, Robinhood: 0, "หน้าร้าน": 0, "อื่นๆ": 0 };
       }
 
       grouped[key][t.category] = (grouped[key][t.category] || 0) + t.amount;
@@ -380,6 +390,10 @@ export default function App() {
             isLoading={!isGetData}
             dailySummaryArray={dailySummaryArray}
             onClickRow={handleClickDailyRow}
+            year={selectedYear}
+            month={selectedMonth}
+            setYear={setSelectedYear}
+            setMonth={setSelectedMonth}
           />
         </div>
 
@@ -448,11 +462,10 @@ export default function App() {
                 <h2 className="text-xl font-bold">📊 ยอดขายแต่ละช่องทาง</h2>
                 <select
                   value={salesChartMode}
-                  onChange={(e) => setSalesChartMode(e.target.value as "day" | "month" | "all")}
+                  onChange={(e) => setSalesChartMode(e.target.value as "day" | "all")}
                   className="border border-gray-400 rounded p-1"
                 >
                   <option value="day">รายวัน</option>
-                  <option value="month">รายเดือน</option>
                   <option value="all">ทั้งหมด</option>
                 </select>
               </div>
@@ -492,7 +505,7 @@ export default function App() {
                     <Legend />
                     <Bar dataKey="Grab" fill="#1cb454ff" />
                     <Bar dataKey="Lineman" fill="#3b82f6" />
-                    <Bar dataKey="ShopeeFood" fill="#f97316" />
+                    <Bar dataKey="Shopeefood" fill="#f97316" />
                     <Bar dataKey="Robinhood" fill="#8054e7ff" />
                     <Bar dataKey="หน้าร้าน" fill="#facc15" />
                     <Bar dataKey="อื่นๆ" fill="#6b7280" />
