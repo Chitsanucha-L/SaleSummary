@@ -5,7 +5,6 @@ import EditTransactionModal from "./Modal/EditTransactionModal";
 import DailySummaryTable from "./components/DailySummaryTable";
 import DailySummaryModal from "./Modal/DailySummaryModal";
 import { DatePicker } from "./components/DatePicker";
-import { parse, format } from "date-fns";
 
 export interface Transaction {
   _id: string;
@@ -17,6 +16,12 @@ export interface Transaction {
 }
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL;
+
+function convertDateToISO(dateStr: string): string {
+  const [day, month, year] = dateStr.split("/");
+  if (!day || !month || !year) return dateStr; // fallback ถ้า format ผิด
+  return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+}
 
 export default function App() {
   const today = new Date().toISOString().split("T")[0];
@@ -263,12 +268,6 @@ export default function App() {
       "-W" +
       Math.ceil(((date.getTime() - onejan.getTime()) / millisecsInDay + onejan.getDay() + 1) / 7)
     );
-  }
-
-  function convertDateToISO(dateStr: string): string {
-    const [day, month, year] = dateStr.split("/");
-    if (!day || !month || !year) return dateStr; // fallback ถ้า format ผิด
-    return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
   }
 
   // -------------------- Handlers --------------------
