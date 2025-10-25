@@ -5,6 +5,7 @@ import EditTransactionModal from "./Modal/EditTransactionModal";
 import DailySummaryTable from "./components/DailySummaryTable";
 import DailySummaryModal from "./Modal/DailySummaryModal";
 import { DatePicker } from "./components/DatePicker";
+import { parse, format } from "date-fns";
 
 export interface Transaction {
   _id: string;
@@ -137,21 +138,21 @@ export default function App() {
   const saveTransaction = useCallback(async () => {
     const newTransactions = [
       ...formIncome.data.filter(i => i.category && i.amount).map(i => ({
-        date: formIncome.date,
+        date: convertDateToISO(formIncome.date),
         type: "income",
         category: i.category,
         amount: Number(i.amount),
         note: i.note
       })),
       ...formExpense.data.filter(i => i.category && i.amount).map(i => ({
-        date: formExpense.date,
+        date: convertDateToISO(formExpense.date),
         type: "expense",
         category: i.category,
         amount: Number(i.amount),
         note: i.note
       })),
       ...formCost.data.filter(i => i.category && i.amount).map(i => ({
-        date: formCost.date,
+        date: convertDateToISO(formCost.date),
         type: "cost",
         category: i.category,
         amount: Number(i.amount),
@@ -172,9 +173,9 @@ export default function App() {
         return res.json();
       }));
       setTransactions(prev => [...prev, ...saved]);
-      setFormIncome({ date: today, type: "income", data: [{ category: "", amount: "", note: "" }] });
-      setFormExpense({ date: today, type: "expense", data: [{ category: "", amount: "", note: "" }] });
-      setFormCost({ date: today, type: "cost", data: [{ category: "", amount: "", note: "" }] });
+      setFormIncome({ date: formIncome.date, type: "income", data: [{ category: "", amount: "", note: "" }] });
+      setFormExpense({ date: formExpense.date, type: "expense", data: [{ category: "", amount: "", note: "" }] });
+      setFormCost({ date: formCost.date, type: "cost", data: [{ category: "", amount: "", note: "" }] });
     } catch (err) {
       console.error(err);
       alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
@@ -262,6 +263,12 @@ export default function App() {
       "-W" +
       Math.ceil(((date.getTime() - onejan.getTime()) / millisecsInDay + onejan.getDay() + 1) / 7)
     );
+  }
+
+  function convertDateToISO(dateStr: string): string {
+    const [day, month, year] = dateStr.split("/");
+    if (!day || !month || !year) return dateStr; // fallback ถ้า format ผิด
+    return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
   }
 
   // -------------------- Handlers --------------------
