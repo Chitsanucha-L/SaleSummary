@@ -54,14 +54,16 @@ export default function App() {
 
 
   // -------------------- Fetch Transactions --------------------
+  // fetch transactions (ทั้งปี)
   useEffect(() => {
     const fetchTransactions = async () => {
       if (selectedYear == null || selectedMonth == null) return;
 
       setIsGetData(false);
       try {
-        const res = await fetch(`${API_BASE}/api/transactions?year=${selectedYear}&month=${selectedMonth}`);
+        const res = await fetch(`${API_BASE}/api/transactions`);
         const data = await res.json();
+
         setTransactions(data);
       } catch (err) {
         console.error(err);
@@ -70,7 +72,8 @@ export default function App() {
     };
 
     fetchTransactions();
-  }, [selectedYear, selectedMonth]);
+  }, []);
+
 
 
   // -------------------- Handler useCallback --------------------
@@ -182,16 +185,29 @@ export default function App() {
 
   // -------------------- Chart Data --------------------
   const chartData = useMemo(() => {
+    if (selectedYear == null || selectedMonth == null) return [];
+
+    // 1️⃣ Filter transactions ตามเดือนและปีที่เลือก
+    const filteredTransactions = transactions.filter(t => {
+      const d = new Date(t.date);
+      return d.getFullYear() === selectedYear && d.getMonth() === selectedMonth;
+    });
+
+    // 2️⃣ จัดกลุ่มตาม chartMode
     const grouped: Record<string, { income: number; expense: number; cost: number }> = {};
-    transactions.forEach(t => {
+
+    filteredTransactions.forEach(t => {
       const key = chartMode === "day" ? t.date : getWeek(t.date);
       if (!grouped[key]) grouped[key] = { income: 0, expense: 0, cost: 0 };
       grouped[key][t.type] += t.amount;
     });
+
+    // 3️⃣ แปลงเป็น array และ sort
     return Object.entries(grouped)
       .map(([name, val]) => ({ name, ...val }))
       .sort((a, b) => new Date(a.name).getTime() - new Date(b.name).getTime());
-  }, [transactions, chartMode]);
+  }, [transactions, chartMode, selectedYear, selectedMonth]);
+
 
   // -------------------- Summary --------------------
   const summary = useMemo(() => {
@@ -300,10 +316,18 @@ export default function App() {
 
   // -------------------- Chart Data per Channel --------------------
   const salesChannelChartData = useMemo(() => {
-    // 1. จัดกลุ่มข้อมูลตาม salesChartMode
+    if (selectedYear == null || selectedMonth == null) return [];
+
+    // 1️⃣ Filter transactions ตามเดือนและปีที่เลือก
+    const filteredTransactions = transactions.filter(t => {
+      const d = new Date(t.date);
+      return d.getFullYear() === selectedYear && d.getMonth() === selectedMonth;
+    });
+
+    // 2️⃣ จัดกลุ่มข้อมูลตาม salesChartMode
     const grouped: Record<string, Record<string, number>> = {};
 
-    transactions.forEach(t => {
+    filteredTransactions.forEach(t => {
       if (t.type !== "income") return; // สนใจเฉพาะรายรับ
 
       let key = t.date;
@@ -322,11 +346,11 @@ export default function App() {
       grouped[key][t.category] = (grouped[key][t.category] || 0) + t.amount;
     });
 
-    // 2. แปลงเป็น array สำหรับ BarChart
+    // 3️⃣ แปลงเป็น array สำหรับ BarChart
     return Object.entries(grouped)
       .map(([name, values]) => ({ name, ...values }))
       .sort((a, b) => new Date(a.name).getTime() - new Date(b.name).getTime());
-  }, [transactions, salesChartMode]);
+  }, [transactions, salesChartMode, selectedYear, selectedMonth]);
 
   // -------------------- Render --------------------
   return (

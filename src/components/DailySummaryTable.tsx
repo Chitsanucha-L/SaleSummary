@@ -1,4 +1,4 @@
-import { useCallback } from "react"
+import { useCallback, useMemo } from "react"
 import { format } from "date-fns"
 import { MonthYearPicker } from "./MonthYearPicker"
 
@@ -36,6 +36,14 @@ const DailySummaryTable = ({
         },
         [onClickRow]
     )
+
+    // ✅ Filter dailySummaryArray ตาม year/month
+    const filteredDailySummary = useMemo(() => {
+        return dailySummaryArray.filter(d => {
+            const date = new Date(d.date);
+            return date.getFullYear() === year && date.getMonth() === month;
+        });
+    }, [dailySummaryArray, year, month]);
 
     return (
         <div className="bg-white p-6 rounded-xl shadow-lg">
@@ -97,20 +105,19 @@ const DailySummaryTable = ({
                                     </div>
                                 </td>
                             </tr>
-                        ) : dailySummaryArray.length === 0 ? (
+                        ) : filteredDailySummary.length === 0 ? (
                             <tr>
                                 <td colSpan={6} className="p-3 text-center text-gray-500 border">
                                     ไม่มีข้อมูล
                                 </td>
                             </tr>
                         ) : (
-                            dailySummaryArray.map((d) => {
-                                // ✅ แปลงวันที่เป็น dd/MM/yyyy
-                                let formattedDate = d.date
+                            filteredDailySummary.map((d) => {
+                                let formattedDate = d.date;
                                 try {
-                                    formattedDate = format(new Date(d.date), "dd/MM/yyyy")
+                                    formattedDate = format(new Date(d.date), "dd/MM/yyyy");
                                 } catch (err) {
-                                    console.warn("Invalid date:", d.date)
+                                    console.warn("Invalid date:", d.date);
                                 }
 
                                 return (
@@ -130,26 +137,29 @@ const DailySummaryTable = ({
                                             {d.expense.toLocaleString()}
                                         </td>
                                         <td
-                                            className={`p-2 border border-gray-600 text-right font-semibold ${d.net >= 0 ? "text-green-700" : "text-red-700"
-                                                }`}
+                                            className={`p-2 border border-gray-600 text-right font-semibold ${
+                                                d.net >= 0 ? "text-green-700" : "text-red-700"
+                                            }`}
                                         >
                                             {d.net.toLocaleString()}
                                         </td>
                                         <td
-                                            className={`p-2 border border-gray-600 text-right font-semibold ${d.cashFlow >= 0 ? "text-green-700" : "text-red-700"
-                                                }`}
+                                            className={`p-2 border border-gray-600 text-right font-semibold ${
+                                                d.cashFlow >= 0 ? "text-green-700" : "text-red-700"
+                                            }`}
                                         >
                                             {d.cashFlow.toLocaleString()}
                                         </td>
                                     </tr>
-                                )
+                                );
                             })
                         )}
                     </tbody>
                 </table>
             </div>
         </div>
-    )
-}
+    );
+};
+
 
 export default DailySummaryTable
