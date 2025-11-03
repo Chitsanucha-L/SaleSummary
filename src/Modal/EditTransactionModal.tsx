@@ -1,6 +1,7 @@
 import { DatePicker } from "@/components/DatePicker";
 import { BanknoteArrowDown, BanknoteArrowUp } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { format } from "date-fns"
 
 interface Transaction {
     _id: string;
@@ -11,12 +12,17 @@ interface Transaction {
     note: string;
 }
 
-
 interface EditModalProps {
     open: boolean;
     onClose: () => void;
     transaction: Transaction | null;
     onSave: (updated: Transaction) => void;
+}
+
+function convertDateToISO(dateStr: string): string {
+  const [day, month, year] = dateStr.split("/");
+  if (!day || !month || !year) return dateStr; // fallback ถ้า format ผิด
+  return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
 }
 
 const EditTransactionModal = ({ open, onClose, transaction, onSave }: EditModalProps) => {
@@ -77,9 +83,9 @@ const EditTransactionModal = ({ open, onClose, transaction, onSave }: EditModalP
                 </div>
 
                 <DatePicker
-                    date={form?.date || ""}               
+                    date={transaction?.date || ""}               
                     onChange={(d) =>                      
-                        setForm({ ...form!, date: d })     
+                        setForm({ ...form!, date: convertDateToISO(d) })     
                     }
                     disabled={isSaving}
                 />
