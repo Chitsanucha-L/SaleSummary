@@ -346,7 +346,7 @@ export default function App() {
       }
 
       if (!grouped[key]) {
-        grouped[key] = { Grab: 0, Lineman: 0, Shopeefood: 0, Robinhood: 0, "หน้าร้าน": 0, "อื่นๆ": 0 };
+        grouped[key] = { Grab: 0, Lineman: 0, Shopeefood: 0, Robinhood: 0, "หน้าร้าน": 0, "คนละครึ่ง": 0, "อื่นๆ": 0 };
       }
 
       grouped[key][t.category] = (grouped[key][t.category] || 0) + t.amount;
@@ -357,6 +357,12 @@ export default function App() {
       .map(([name, values]) => ({ name, ...values }))
       .sort((a, b) => new Date(a.name).getTime() - new Date(b.name).getTime());
   }, [transactions, salesChartMode, selectedYear, selectedMonth]);
+
+  // เปิด dropdown ทีละอัน
+  const [openString, setOpenString] = useState<string | null>(null);
+  const toggleDropdown = useCallback((type: string) => {
+    setOpenString(prev => (prev === type ? null : type));
+  }, []);
 
   // -------------------- Render --------------------
   return (
@@ -378,6 +384,8 @@ export default function App() {
             onAdd={addIncomeItem}
             onRemove={removeIncomeItem}
             onUpdate={updateIncomeItem}
+            openString={openString}
+            toggleDropdown={toggleDropdown}
           />
 
           <TransactionForm
@@ -386,6 +394,8 @@ export default function App() {
             onAdd={addExpenseItem}
             onRemove={removeExpenseItem}
             onUpdate={updateExpenseItem}
+            openString={openString}
+            toggleDropdown={toggleDropdown}
           />
 
           <TransactionForm
@@ -394,6 +404,8 @@ export default function App() {
             onAdd={addCostItem}
             onRemove={removeCostItem}
             onUpdate={updateCostItem}
+            openString={openString}
+            toggleDropdown={toggleDropdown}
           />
 
           <button
@@ -534,10 +546,11 @@ export default function App() {
                     <Tooltip />
                     <Legend />
                     <Bar dataKey="Grab" fill="#1cb454ff" />
-                    <Bar dataKey="Lineman" fill="#3b82f6" />
-                    <Bar dataKey="Shopeefood" fill="#f97316" />
-                    <Bar dataKey="Robinhood" fill="#8054e7ff" />
-                    <Bar dataKey="หน้าร้าน" fill="#facc15" />
+                    <Bar dataKey="Lineman" fill="#39dfebff" />
+                    <Bar dataKey="Shopeefood" fill="#f38739ff" />
+                    <Bar dataKey="Robinhood" fill="#8762ddff" />
+                    <Bar dataKey="หน้าร้าน" fill="#f5d246ff" />
+                    <Bar dataKey="คนละครึ่ง" fill="#3b82f6" />
                     <Bar dataKey="อื่นๆ" fill="#6b7280" />
                   </BarChart>
                 </ResponsiveContainer>

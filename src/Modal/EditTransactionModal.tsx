@@ -36,7 +36,7 @@ const EditTransactionModal = ({ open, onClose, transaction, onSave }: EditModalP
         if (!form) return [];
         switch (form.type) {
             case "income":
-                return ["Grab", "Lineman", "Shopeefood", "Robinhood", "หน้าร้าน", "อื่นๆ"];
+                return ["Grab", "Lineman", "Shopeefood", "Robinhood", "หน้าร้าน", "คนละครึ่ง", "อื่นๆ"];
             case "expense":
                 return ["กุ้ง", "แซลมอน", "ผัก", "บรรจุภัณฑ์", "เครื่องปรุง", "เครื่องดื่ม", "เครื่องเคียง", "อื่นๆ"];
             case "cost":
