@@ -358,11 +358,14 @@ export default function App() {
       .sort((a, b) => new Date(a.name).getTime() - new Date(b.name).getTime());
   }, [transactions, salesChartMode, selectedYear, selectedMonth]);
 
-  // เปิด dropdown ทีละอัน
-  const [openString, setOpenString] = useState<string | null>(null);
-  const toggleDropdown = useCallback((type: string) => {
-    setOpenString(prev => (prev === type ? null : type));
+  // เปิด dropdown ทีละอันในทุกฟอร์ม
+  const [openDropdown, setOpenDropdown] = useState<{ type: string; index: number } | null>(null);
+  const toggleDropdown = useCallback((type: string, index: number) => {
+    setOpenDropdown(prev =>
+      prev?.type === type && prev.index === index ? null : { type, index }
+    );
   }, []);
+
 
   // -------------------- Render --------------------
   return (
@@ -384,7 +387,7 @@ export default function App() {
             onAdd={addIncomeItem}
             onRemove={removeIncomeItem}
             onUpdate={updateIncomeItem}
-            openString={openString}
+            openDropdown={openDropdown}
             toggleDropdown={toggleDropdown}
           />
 
@@ -394,7 +397,7 @@ export default function App() {
             onAdd={addExpenseItem}
             onRemove={removeExpenseItem}
             onUpdate={updateExpenseItem}
-            openString={openString}
+            openDropdown={openDropdown}
             toggleDropdown={toggleDropdown}
           />
 
@@ -404,7 +407,7 @@ export default function App() {
             onAdd={addCostItem}
             onRemove={removeCostItem}
             onUpdate={updateCostItem}
-            openString={openString}
+            openDropdown={openDropdown}
             toggleDropdown={toggleDropdown}
           />
 

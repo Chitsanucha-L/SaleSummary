@@ -18,8 +18,8 @@ interface TransactionFormProps {
   onAdd: () => void;
   onRemove: (index: number) => void;
   onUpdate: (index: number, key: keyof TransactionItem, value: string) => void;
-  openString: string | null;
-  toggleDropdown: (type: string) => void;
+  openDropdown: { type: string; index: number } | null;
+  toggleDropdown: (type: string, index: number) => void;
 }
 
 const incomeOptions: CategoryOption[] = [
@@ -152,7 +152,7 @@ const TransactionFormItem = ({
   );
 };
 
-const TransactionForm = ({ type, data, onAdd, onRemove, onUpdate, openString, toggleDropdown }: TransactionFormProps) => {
+const TransactionForm = ({ type, data, onAdd, onRemove, onUpdate, openDropdown, toggleDropdown }: TransactionFormProps) => {
   const renderIcon = useMemo(() => type === "income"
     ? <BanknoteArrowUp className="mr-2 text-green-700" />
     : type === "expense"
@@ -165,10 +165,10 @@ const TransactionForm = ({ type, data, onAdd, onRemove, onUpdate, openString, to
   return (
     <div className="col-span-3 grid grid-cols-2 gap-2 items-center mb-6">
       <div className={`w-full font-medium flex border shadow-sm p-2 rounded-lg ${type === "income"
-          ? "border-green-300 bg-green-100 text-green-700"
-          : type === "expense"
-            ? "border-red-300 bg-red-100 text-red-700"
-            : "border-blue-300 bg-blue-100 text-blue-700"
+        ? "border-green-300 bg-green-100 text-green-700"
+        : type === "expense"
+          ? "border-red-300 bg-red-100 text-red-700"
+          : "border-blue-300 bg-blue-100 text-blue-700"
         }`}>
         {renderIcon} {type === "income" ? "รายรับ" : type === "expense" ? "รายจ่าย" : "ต้นทุน"}
       </div>
@@ -192,8 +192,8 @@ const TransactionForm = ({ type, data, onAdd, onRemove, onUpdate, openString, to
           item={item}
           index={index}
           onUpdate={onUpdate}
-          dropdownOpen={openString === type}
-          onToggleDropdown={() => toggleDropdown(type)}
+          dropdownOpen={openDropdown?.type === type && openDropdown.index === index}
+          onToggleDropdown={() => toggleDropdown(type, index)}
         />
       ))}
     </div>
